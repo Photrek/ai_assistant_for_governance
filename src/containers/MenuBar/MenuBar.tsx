@@ -6,6 +6,7 @@ import Brightness3Icon from "@mui/icons-material/Brightness3";
 import WbSunnyIcon from "@mui/icons-material/WbSunny";
 import { useTranslation } from "react-i18next";
 import LanguageMenu from "../LanguageMenu";
+import { SelectOllamaModel } from "../../components/SelectModelComponent/SelectModelComponent";
 
 const MenuBar: React.FC = () => {
   const [ darkMode, setDarkMode ]: any = useDarkMode();
@@ -17,8 +18,9 @@ const MenuBar: React.FC = () => {
         <Toolbar>
           <Grid container alignContent="center" alignItems="center" justifyContent="space-between">
             <Typography variant="h6">{t("Home")}</Typography>
-            <Typography variant="caption">typescript-react-material-ui</Typography>
-            <Grid item>
+            <Typography variant="h5">Bakon's Ollama WebUI written in React/Typescript</Typography>
+            <div> <SelectOllamaModel /></div>            
+            <Grid item>              
               <LanguageMenu />
               <Tooltip title={t("Toggle Dark Mode")}>
                 <IconButton onClick={ () => setDarkMode(darkMode ? false : true) }>

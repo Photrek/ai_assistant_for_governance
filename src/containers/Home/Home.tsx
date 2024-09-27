@@ -1,15 +1,11 @@
 import React from "react";
-import { ThemeProvider, AppBar, Toolbar, Typography, IconButton, Tooltip, CssBaseline } from "@mui/material";
+import { ThemeProvider, Typography, CssBaseline } from "@mui/material";
 import Grid from '@mui/material/Grid';
 import { useDarkMode } from "../../hooks/useDarkMode";
-import Brightness3Icon from "@mui/icons-material/Brightness3";
-import WbSunnyIcon from "@mui/icons-material/WbSunny";
 import { lightTheme, darkTheme } from "../../themes/theme";
 import { useTranslation } from "react-i18next";
 import MenuBar from "../MenuBar";
-import LanguageMenu from "../LanguageMenu";
-
-
+import { PromptInputInterface } from "../../components/PromptInputInterface/PromptInputInterface";
 import "./Home.css";
 
 const Home: React.FC = () => {
@@ -20,13 +16,22 @@ const Home: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <MenuBar />
-      <div>
+      <div style={{
+        backgroundImage: `url(${"assets/images/640px-Made20bacon.png"})`,
+        backgroundSize: 'cover', // Makes sure the image covers the entire container
+        backgroundPosition: 'center', // Centers the image
+        backgroundRepeat: 'no-repeat', // Prevents the image from tiling
+        height: '100vh', // Full viewport height
+        width: '100vw', // Full viewport width
+        display: 'flex', // To center the content vertically and horizontally
+        flexDirection: 'column',
+        justifyContent: 'top',
+        alignItems: 'center',
+        overflow: 'auto', // Allows scrolling if content exceeds viewport
+      }}>
         <CssBaseline />
         <Grid container alignContent="center" alignItems="center" justifyContent="center" direction="column">
-          <img className="logo" alt="logo" src={darkMode
-            ? "assets/images/640px-Made20bacon.png" //tslint:disable-line
-            : "assets/images/640px-Made20bacon.png" //tslint:disable-line
-          } style={{ paddingTop: "10%" }} />
+          <PromptInputInterface />
           <Typography variant="caption" style={{ position: "absolute", bottom: "10px" }}>
             {t("Date", { date: new Date() })}
           </Typography>
