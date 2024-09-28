@@ -37,20 +37,22 @@ export const SelectOllamaModel: React.FC= () => {
   }, []);
 
   return (
-    <FormControl fullWidth>
-      <InputLabel>Select OLLAMA Model</InputLabel>
-      <Select
-        value={selectedModel}
-        onChange={handleChange}
-        label="Select OLLAMA Model"
-        style={{minWidth: "200px"}}
-      >
-        { models && JSON.parse(models).models.map((option: any) => (
-          <MenuItem key={option.model} value={option.model}>
-            {option.name}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+    <div>
+      <FormControl>
+        <InputLabel>Select OLLAMA Model</InputLabel>
+        <Select
+          value={selectedModel}
+          onChange={handleChange}
+          label="Select OLLAMA Model"
+          style={{minWidth: "200px"}}
+        >
+          { models && models.models.map((option: any) => (
+            <MenuItem key={option.model} value={option.model}>
+              {option.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </div>
   );
 };
