@@ -44,7 +44,8 @@ export const SelectOllamaModel: React.FC= () => {
           value={selectedModel}
           onChange={handleChange}
           label="Select OLLAMA Model"
-          style={{minWidth: "200px"}}
+          style={{minWidth: "50px"}}
+          sx={{ ml: 1, maxHeight: '55px' }}
         >
           { models && models.models.map((option: any) => (
             <MenuItem key={option.model} value={option.model}>

@@ -6,7 +6,7 @@ import Brightness3Icon from "@mui/icons-material/Brightness3";
 import WbSunnyIcon from "@mui/icons-material/WbSunny";
 import { useTranslation } from "react-i18next";
 import LanguageMenu from "../LanguageMenu";
-
+import { EndpointSettingsModal } from "../../components/EndpointSettingsModal/EndpointSettingsModal";
 
 const MenuBar: React.FC = () => {
   const [ darkMode, setDarkMode ]: any = useDarkMode();
@@ -17,12 +17,10 @@ const MenuBar: React.FC = () => {
       <AppBar position="sticky" color="default" elevation={0}>
         <Toolbar>
           <Grid container alignContent="center" alignItems="center" justifyContent="space-between">
-          <Typography variant="h5"></Typography>
-
-            <Typography variant="h5">Bakon's Ollama WebUI written in React/Typescript</Typography>
-
+            <EndpointSettingsModal />
+            <Typography variant="h5">Ollama WebUI written in React/Typescript</Typography>
             <Grid item>
-              <LanguageMenu />
+              {/*<LanguageMenu />*/}
               <Tooltip title={t("Toggle Dark Mode")}>
                 <IconButton onClick={ () => setDarkMode(darkMode ? false : true) }>
                   {darkMode ? <Brightness3Icon /> : <WbSunnyIcon />}

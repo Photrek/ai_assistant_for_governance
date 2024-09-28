@@ -30,11 +30,9 @@ const Home: React.FC = () => {
         overflow: 'auto', // Allows scrolling if content exceeds viewport
       }}>
         <CssBaseline />
+        
         <Grid container alignContent="center" alignItems="center" justifyContent="center" direction="column">
-          <PromptInputInterface />
-          <Typography variant="caption" style={{ position: "absolute", bottom: "10px" }}>
-            {t("Date", { date: new Date() })}
-          </Typography>
+        <PromptInputInterface />
         </Grid>
       </div>
     </ThemeProvider >
