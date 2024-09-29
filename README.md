@@ -17,9 +17,9 @@ The web interface is responsive as well, so it'll run on mobile devices as well.
 ANd just as a cherry on top you have options between Dakr and Light themes.
 
 # Future Features
-Add an option to manage Models.
-Add an way to accomadate models, for example: Image, document and or video uploading to interact with the LLM its models.
-Add sort of a persitant memory/storage way to help the llm continue off where you left off.
+[]Add an option to manage Models.
+[]Add an way to accomadate models, for example: Image, document and or video uploading to interact with the LLM its models.
+[]Add sort of a persitant memory/storage way to help the llm continue off where you left off.
 
 # Previews
 #Dark Mode:
