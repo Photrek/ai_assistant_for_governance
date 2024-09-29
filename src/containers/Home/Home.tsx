@@ -25,7 +25,7 @@ const Home: React.FC = () => {
         width: '100vw', // Full viewport width
         display: 'flex', // To center the content vertically and horizontally
         flexDirection: 'column',
-        justifyContent: 'top',
+        justifyContent: 'center',
         alignItems: 'center',
         overflow: 'auto', // Allows scrolling if content exceeds viewport
       }}>

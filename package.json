@@ -3,7 +3,7 @@
   "version": "0.0.0-development",
   "homepage": "./",
   "description": "A starting point for Typescript, React, Material UI theming, moment.js and i18next.",
-  "main": "build/index.js",
+  "main": "public/electron.js",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

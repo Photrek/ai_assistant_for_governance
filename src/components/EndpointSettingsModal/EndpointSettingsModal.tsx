@@ -24,7 +24,7 @@ export const EndpointSettingsModal: React.FC = () => {
   const [ aiEndpoint, setAIendpoint ]: any = useAIEndpoint();
 
   const handleSetAIEndPoint = async () => {
-    const endpointArray = [hostAddress, portNumber];
+    const endpointArray = [ hostAddress, portNumber];
     const endpointArrayString = JSON.stringify(endpointArray);
     console.log("endpointArrayString: ", endpointArrayString);
     setAIendpoint(endpointArrayString);
@@ -54,20 +54,26 @@ export const EndpointSettingsModal: React.FC = () => {
       <Box sx={style}>
         <h2 id="modal-title">Enter endpoints for your Ollama instance.</h2>
         <TextField
-          sx={{ width: '100%', padding: 3, marginBottom: 3 }}
-          label="IP Address"
+          sx={{ mt: 1 }}
+          fullWidth
+          variant="outlined"
+          size="medium"         
+          label={ "IP Address: " + !aiEndpoint ? 'localhost' : JSON.parse(aiEndpoint)[0] }
           value={hostAddress}
           onChange={(e) => setHostAddress(e.target.value)}
         />
         <TextField
-          sx={{ width: '100%', padding: 3, marginBottom: 10 }}
-          label="Port Number"
+          sx={{ mt: 1 }}
+          fullWidth
+          variant="outlined"
+          size="medium"  
+          label={"Port Number: " + !aiEndpoint ? '11434' : JSON.parse(aiEndpoint)[1]}
           value={portNumber}
           onChange={(e) => setPortNumber(e.target.value)}
         />
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={()=>handleSetAIEndPoint()}>Save</Button>
+          <Button sx={{ mt: 1 }} onClick={handleClose}>Cancel</Button>
+          <Button sx={{ mt: 1 }} onClick={()=>handleSetAIEndPoint()}>Save</Button>
         </Box>
       </Box>
       </Modal>

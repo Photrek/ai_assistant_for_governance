@@ -144,7 +144,7 @@ export const PromptInputInterface: React.FC = () => {
         flexDirection: 'column', 
         width: '100%', // Full width of its container
         maxWidth: '900px', // Maximum width, so it doesn't get too wide on large screens
-        height: '80vh', // 80% of the viewport height, adjust as necessary
+        height: '90vh', // 80% of the viewport height, adjust as necessary
         margin: 'auto', // Center the box if it has a max-width
         border: '1px solid #ccc', 
         borderRadius: '4px', 
@@ -154,7 +154,7 @@ export const PromptInputInterface: React.FC = () => {
         }
       }}>
         {/* Chat Display */}
-        <Box sx={{ 
+        <Box sx={{
           flexGrow: 1,
           overflowY: 'auto',
           padding: '10px',
@@ -228,7 +228,7 @@ export const PromptInputInterface: React.FC = () => {
               },
             }}
           />
-          <SelectOllamaModel />        
+          <SelectOllamaModel />
           <Button 
             variant="outlined"
             color="primary"
