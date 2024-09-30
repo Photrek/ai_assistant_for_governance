@@ -1,6 +1,6 @@
 # What is this?
 
-This is a Web interface build to leverge Ollama[https://ollama.com/] and it's API top interact with Models you might have 
+This is a Web interface build to leverge Ollama[https://ollama.com/] and it's API t interact with Models you might have 
 loaded on your local machine or a machine you have access to.
 
 # Features
