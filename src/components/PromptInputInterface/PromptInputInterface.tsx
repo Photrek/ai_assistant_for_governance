@@ -12,15 +12,16 @@ import "./PromptInputInterface.css";
 
 // Define the type for a message
 interface Message {
-  text: string | React.ReactNode;
-  sender: 'user' | 'AI';
-  isCode?: boolean; // New property to indicate if the message contains code
+  role: 'user' | 'assistant' | 'thinking';
+  content: string | React.ReactNode;
 }
 export const PromptInputInterface: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [ messages, setMessages] = useState<Message[]>([]);
+  const [ messageHistory, setMessageHistory ] = useState<Message[]>([]);
+  const [ input, setInput] = useState('');
   const [ model, setModel ]: any = useModel();
   const [ darkMode, setDarkMode ]: any = useDarkMode();
+  const [ images, setImages ] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -49,11 +50,12 @@ export const PromptInputInterface: React.FC = () => {
         const language = parts[i] || 'text';
         const code = parts[i + 1]?.trim() || '';
         if (code) {
+          console.log("language: ", language);  
           elements.push(
             <Box key={`code-${i}`}>
               <hr />
               <Typography>AI code block:</Typography>
-              <SyntaxHighlighter language={language} style={darkMode ? vscDarkPlus : vs}>
+              <SyntaxHighlighter language={language} style={darkMode ? oneDark : duotoneLight}>
                 {code}
               </SyntaxHighlighter>
             </Box>
@@ -68,16 +70,30 @@ export const PromptInputInterface: React.FC = () => {
 
   // Function to handle sending a message
   const sendMessage = async () => {
+    // console.log("Input: ", messageHistory);
+    let message: any = messageHistory.concat(
+      {
+        role: 'user',
+        content: input
+      }
+    );
+    console.log("Message: ", message);
     if (input.trim()) {
-      setMessages(prevMessages => [...prevMessages, { 
-        text: input,
-        sender: 'user'
+      setMessages(prevMessages => [...prevMessages, {
+        role: 'user',
+        content: input
       }]);
-      // setMessages(prevMessages => [...prevMessages, { 
-      //   text: <img src="assets/images/artificial-intelligence.gif" alt="brain" height="50" />, 
-      //   sender: 'AI',
-      // }]);
+      setMessages(prevMessages => [...prevMessages, {
+        role: 'thinking',
+        content: <img src="assets/images/artificial-intelligence.gif" alt="brain" height="50" />, 
+      }]);
       setInput('');
+    };
+    if (input.trim()) {
+      setMessageHistory(prevMessages => [...prevMessages, {
+        role: 'user',
+        content: input
+      }]);
     };
 
     const optionsGenerate = {
@@ -100,13 +116,9 @@ export const PromptInputInterface: React.FC = () => {
       },
       body: JSON.stringify({
         model: model,
-        messages: [
-          {
-            role: "user",
-            content: input
-          }
-        ],
+        messages: message,
         stream: false,
+        // images: [],
         // format: 'json'
       })
     };
@@ -118,19 +130,17 @@ export const PromptInputInterface: React.FC = () => {
     const renderedInput: any = await renderMessageContent(response.message.content);
     console.log("Rendered Input: ", renderedInput);
     setMessages(prevMessages => [...prevMessages, {
-      text: renderedInput,
-      sender: 'AI'
+      role: 'assistant',
+      content: renderedInput
     }]);
+
+    setMessageHistory(prevMessages => [...prevMessages, {
+      role: 'assistant',
+      content: response.message.content  
+    }]);
+
+    setMessages(prevItems => prevItems.filter((item => item['role'] !== 'thinking')));
     
-    // const isCode = response.includes('```');
-    // Then when you update your messages state:
-    /*
-    setMessages(prevMessages => [...prevMessages, {
-      text: `AI: ${response}`, // Assuming response is the string you get back from the API
-      sender: 'AI',
-      isCode: isCode // Here, isCode is set based on whether the message includes ```
-    }]);
-    */
   };
 
   useEffect(() => {
@@ -163,11 +173,11 @@ export const PromptInputInterface: React.FC = () => {
           <List>
             {messages.map((msg, index) => (
               <ListItem key={index} sx={{
-                justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start'
+                justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start'
               }}>
                 <Box
                   sx={{ 
-                    backgroundColor: msg.sender === 'user' ? '#dcf8c6' : '#fff', 
+                    backgroundColor: msg.role === 'user' ? '#dcf8c6' : '#fff', 
                     borderRadius: '10px', 
                     padding: '8px 12px', 
                     display: 'inline-block',
@@ -175,7 +185,7 @@ export const PromptInputInterface: React.FC = () => {
                   }}                
                 >
                   <Typography component="div">
-                    {msg.text}
+                    {msg.content}
                   </Typography>
                 </Box>
               </ListItem>

@@ -1,17 +1,23 @@
 {
-  "name": "@bakon11/typescript-react-material-ui-template",
-  "version": "0.0.0-development",
+  "name": "ollama-ai-assistant",
+  "version": "0.0.1",
   "homepage": "./",
-  "description": "A starting point for Typescript, React, Material UI theming, moment.js and i18next.",
-  "main": "public/electron.js",
+  "description": "A simple UI to use with Ollama with the option to specify the endpoint and the model to use",
+  "main": "./main.js",
+  "type": "module",
   "scripts": {
-    "start": "react-scripts start",
+    "start": "react-scripts start && electron-builder",
     "build": "react-scripts build",
     "lint": "tslint --fix -p .",
-    "test": "npm run lint && react-scripts test --coverage --passWithNoTests"
+    "test": "npm run lint && react-scripts test --coverage --passWithNoTests",
+    "electron-dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-pack-linux": "electron-builder build --linux --publish never",
+    "electron-pack-mac": "electron-builder build --mac --publish never",
+    "electron-pack-win": "electron-builder build --win --publish never",
+    "electron-build": "react-scripts build && electron-builder"
   },
-  "author": "",
-  "license": "Apache-2.0",
+  "author": "Mike Ski <mike@onchainapps.io>",
+  "license": "MIT",
   "browserslist": {
     "production": [
       ">0.2%",
@@ -32,6 +38,7 @@
     "@mui/material": "^5.15.19",
     "@mui/x-data-grid": "^5.17.11",
     "@mui/x-date-pickers": "^7.11.1",
+    "electron-is-dev": "^3.0.1",
     "i18next": "^20.0.0",
     "i18next-browser-languagedetector": "^4.0.0",
     "moment": "^2.24.0",
@@ -54,10 +61,78 @@
     "@types/react-dom": "^18.3.0",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "concurrently": "^9.0.1",
+    "electron": "^32.1.2",
+    "electron-builder": "^25.0.5",
     "jest": "^24.7.1",
     "react-scripts": "^5.0.1",
     "ts-jest": "^24.0.2",
     "tslint": "^5.17.0",
-    "typescript": "^4.9.5"
+    "typescript": "^4.9.5",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.bakon.ollama-ai-assistant",
+    "productName": "Ollama-AI-Assistant",
+    "executableName": "Ollama-AI-Assistant",
+    "linux": {
+      "artifactName": "${productName}-${version}-${arch}-linux.${ext}",
+      "maintainer": "bakon",
+      "target": [
+        "tar.gz",
+        "deb",
+        "AppImage"
+      ],
+      "category": "Utility",
+      "executableName": "Ollama-AI-Assistant",
+      "icon": "build/icon.jpg",
+      "desktop": {
+        "Name": "${productName}-${version}-${arch}-linux.${ext}",
+        "Comment": "A UI Assistant for utiziling with Ollama Model Execution engine",
+        "MimeType": "application/x-myapp"
+      },
+      "fileAssociations": [
+        {
+          "ext": "${productName}-${version}-${arch}-linux.${ext}",
+          "name": "${productName}-${version}-${arch}-linux.${ext}",
+          "mimeType": "application/x-myapp"
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.jpg",
+      "publisherName": "OnchainApps",
+      "requestedExecutionLevel": "asInvoker",
+      "artifactName": "${productName}-${version}-${arch}-win.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "${productName}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable.${ext}"
+    },
+    "files": [
+      "build/**/*",
+      "./main.js"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/preload.js"
+    ],
+    "extends": null
   }
 }
