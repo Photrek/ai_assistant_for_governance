@@ -29,3 +29,5 @@ And just options to assign your own code parser themes for Light and Dark themes
 #Light Mode
 ![image](https://github.com/user-attachments/assets/5ba95e02-da6a-4f84-8845-16b9d34477ad)
 
+#Persistan Memory for Prompts
+![image_2024-10-01_10-37-48](https://github.com/user-attachments/assets/776837cd-4b32-4910-a023-dc9825a0e215)
