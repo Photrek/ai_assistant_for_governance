@@ -10,6 +10,8 @@
     "build": "react-scripts build",
     "lint": "tslint --fix -p .",
     "test": "npm run lint && react-scripts test --coverage --passWithNoTests",
+    "webscrap": "node --loader ts-node/esm ./src/model_training/webscrap2.ts",
+    "traindata": "node --loader ts-node/esm src//model_training/traindata.ts",
     "electron-dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-pack-linux": "electron-builder build --linux --publish never",
     "electron-pack-mac": "electron-builder build --mac --publish never",
@@ -38,10 +40,15 @@
     "@mui/material": "^5.15.19",
     "@mui/x-data-grid": "^5.17.11",
     "@mui/x-date-pickers": "^7.11.1",
+    "@types/axios": "^0.14.0",
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
     "electron-is-dev": "^3.0.1",
     "i18next": "^20.0.0",
     "i18next-browser-languagedetector": "^4.0.0",
+    "ml": "^6.0.0",
     "moment": "^2.24.0",
+    "natural": "^8.0.1",
     "prismjs": "^1.29.0",
     "react": "^18.2.0",
     "react-chartjs-2": "^4.0.0",
@@ -56,7 +63,9 @@
   },
   "devDependencies": {
     "@mui/types": "^7.2.15",
+    "@types/cheerio": "^0.22.35",
     "@types/jest": "^24.0.13",
+    "@types/jsdom": "^21.1.7",
     "@types/material-ui": "^0.21.17",
     "@types/react-dom": "^18.3.0",
     "@types/react-router-dom": "^5.3.3",
@@ -67,6 +76,8 @@
     "jest": "^24.7.1",
     "react-scripts": "^5.0.1",
     "ts-jest": "^24.0.2",
+    "ts-node": "^10.9.2",
+    "tsc": "^2.0.4",
     "tslint": "^5.17.0",
     "typescript": "^4.9.5",
     "wait-on": "^8.0.1"
@@ -103,11 +114,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.jpg",
