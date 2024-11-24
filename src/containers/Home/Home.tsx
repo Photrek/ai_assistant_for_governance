@@ -6,6 +6,7 @@ import { lightTheme, darkTheme } from "../../themes/theme";
 import { useTranslation } from "react-i18next";
 import MenuBar from "../MenuBar";
 import { PromptInputInterface } from "../../components/PromptInputInterface/PromptInputInterface";
+import { OnChainProposalComponent } from "../../components/OnChainProposalComponent/OnChainProposalComponent";
 import "./Home.css";
 
 const Home: React.FC = () => {
@@ -17,7 +18,7 @@ const Home: React.FC = () => {
     <ThemeProvider theme={theme}>
       <MenuBar />
       <div style={{
-        backgroundImage: `url(${"assets/images/640px-Made20bacon.png"})`,
+        backgroundImage: `url(${"assets/images/Photrek.jpg"})`,
         backgroundSize: 'cover', // Makes sure the image covers the entire container
         backgroundPosition: 'center', // Centers the image
         backgroundRepeat: 'no-repeat', // Prevents the image from tiling
@@ -31,8 +32,9 @@ const Home: React.FC = () => {
       }}>
         <CssBaseline />
         
-        <Grid container alignContent="center" alignItems="center" justifyContent="center" direction="column">
-        <PromptInputInterface />
+        <Grid container alignContent="center" alignItems="center" justifyContent="center">
+          <PromptInputInterface />
+          <OnChainProposalComponent />
         </Grid>
       </div>
     </ThemeProvider >

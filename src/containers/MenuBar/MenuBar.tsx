@@ -18,7 +18,7 @@ const MenuBar: React.FC = () => {
         <Toolbar>
           <Grid container alignContent="center" alignItems="center" justifyContent="space-between">
             <EndpointSettingsModal />
-            <Typography variant="h5">Ollama WebUI written in React/Typescript</Typography>
+            <Typography variant="h5">AI Assistant for Governance: Empowering Team-Based dReps </Typography>
             <Grid item>
               {/*<LanguageMenu />*/}
               <Tooltip title={t("Toggle Dark Mode")}>

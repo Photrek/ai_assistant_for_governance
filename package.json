@@ -1,8 +1,8 @@
 {
-  "name": "ollama-ai-assistant",
+  "name": "ai_assistant_for_governance",
   "version": "0.0.1",
   "homepage": "./",
-  "description": "A simple UI to use with Ollama with the option to specify the endpoint and the model to use",
+  "description": "Empowering Team-Based dReps for Cardano",
   "main": "./main.js",
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "build": "react-scripts build",
     "lint": "tslint --fix -p .",
     "test": "npm run lint && react-scripts test --coverage --passWithNoTests",
-    "webscrap": "node --loader ts-node/esm ./src/model_training/webscrap2.ts",
+    "webscrap": "node --loader ts-node/esm ./src/model_training/webscrap.ts",
     "traindata": "node --loader ts-node/esm src//model_training/traindata.ts",
     "electron-dev": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-pack-linux": "electron-builder build --linux --publish never",
@@ -59,7 +59,8 @@
     "react-markdown": "^9.0.1",
     "react-router-dom": "^6.3.0",
     "react-syntax-highlighter": "^15.5.0",
-    "reusable": "^1.0.1"
+    "reusable": "^1.0.1",
+    "websocket": "^1.0.35"
   },
   "devDependencies": {
     "@mui/types": "^7.2.15",
@@ -83,23 +84,23 @@
     "wait-on": "^8.0.1"
   },
   "build": {
-    "appId": "com.bakon.ollama-ai-assistant",
-    "productName": "Ollama-AI-Assistant",
-    "executableName": "Ollama-AI-Assistant",
+    "appId": "io.photrek.ai_assistant_for_governance",
+    "productName": "ai_assistant_for_governance",
+    "executableName": "ai_assistant_for_governance",
     "linux": {
       "artifactName": "${productName}-${version}-${arch}-linux.${ext}",
-      "maintainer": "bakon",
+      "maintainer": "Mike",
       "target": [
         "tar.gz",
         "deb",
         "AppImage"
       ],
       "category": "Utility",
-      "executableName": "Ollama-AI-Assistant",
+      "executableName": "ai_assistant_for_governance",
       "icon": "build/icon.jpg",
       "desktop": {
         "Name": "${productName}-${version}-${arch}-linux.${ext}",
-        "Comment": "A UI Assistant for utiziling with Ollama Model Execution engine",
+        "Comment": "Empowering Team-Based dReps for Cardano",
         "MimeType": "application/x-myapp"
       },
       "fileAssociations": [
@@ -126,7 +127,7 @@
         }
       ],
       "icon": "build/icon.jpg",
-      "publisherName": "OnchainApps",
+      "publisherName": "Photrek",
       "requestedExecutionLevel": "asInvoker",
       "artifactName": "${productName}-${version}-${arch}-win.${ext}"
     },

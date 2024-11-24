@@ -12,7 +12,9 @@ let baseUrl: string;
 // baseUrl = "https://docs.cardano.org/";
 // baseUrl = "https://cips.cardano.org/";
 // baseUrl = "https://www.essentialcardano.io/";
-  baseUrl = "https://www.emurgo.io/";
+// baseUrl = "https://www.emurgo.io/";
+// baseUrl = "https://iohk.io/en/research/library/";
+baseUrl = "https://iohk.io/";
 
 const directory = "./src/model_training/data/scraped_data/";
 const filename = `${baseUrl.replace(/^https:\/\//, '').replace(/\//g, '')}.json`;
