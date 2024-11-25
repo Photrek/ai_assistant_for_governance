@@ -32,7 +32,7 @@ const Home: React.FC = () => {
       }}>
         <CssBaseline />
         
-        <Grid container alignContent="center" alignItems="center" justifyContent="center">
+        <Grid container>
           <PromptInputInterface />
           <OnChainProposalComponent />
         </Grid>

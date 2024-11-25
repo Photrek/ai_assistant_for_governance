@@ -153,7 +153,7 @@ export const PromptInputInterface: React.FC = () => {
         display: 'flex', 
         flexDirection: 'column', 
         width: '100%', // Full width of its container
-        maxWidth: '900px', // Maximum width, so it doesn't get too wide on large screens
+        maxWidth: '800px', // Maximum width, so it doesn't get too wide on large screens
         height: '90vh', // 80% of the viewport height, adjust as necessary
         margin: 'auto', // Center the box if it has a max-width
         border: '1px solid #ccc', 
@@ -171,6 +171,8 @@ export const PromptInputInterface: React.FC = () => {
           backgroundColor: darkMode ? 'black' : '#f5f5f5'
         }}>
           <List>
+            <Typography>AI chat box</Typography>
+            <hr />
             {messages.map((msg, index) => (
               <ListItem key={index} sx={{
                 justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start'

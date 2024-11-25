@@ -11,3 +11,14 @@ export const useAIEndpoint = createStore( () => {
   };
   return [useAIEndpoint, handleSetAIEndPoint];
 });
+
+export const useOgmiosHook = createStore( () => {
+  // tslint:disable-next-line: react-hooks-nesting
+  const [ ogmiosHook, setOgmiosHook ] = useState(localStorage.getItem("ogmiosHook"));
+  // tslint:disable-next-line: no-shadowed-variable
+  const handleSetOgmiosHook = async (ogmiosHook: any) => {
+    localStorage.setItem("ogmiosHook", ogmiosHook);
+    return setOgmiosHook(ogmiosHook);
+  };
+  return [ogmiosHook, handleSetOgmiosHook];
+});

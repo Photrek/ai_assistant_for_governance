@@ -15,8 +15,8 @@ const routing = (
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <ReusableProvider>
-      <React.StrictMode>
+      {/*<React.StrictMode>*/}
         { routing }
-      </React.StrictMode>
+      {/*</React.StrictMode>*/}
   </ReusableProvider>
 );
