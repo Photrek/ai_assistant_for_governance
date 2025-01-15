@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Box, TextField, Button, List, ListItem, Typography, Grid } from '@mui/material';
 import { wsp } from "../../API/ogmiosApi";
 import { useDarkMode } from "../../hooks/useDarkMode";
+import { decode } from 'cbor-x';
+
 export const OnChainProposalComponent: React.FC = () => {
   const [ proposals, setProposals ] = useState<any[]>([]);
   const [ darkMode, setDarkMode ]: any = useDarkMode();
@@ -56,8 +58,39 @@ export const OnChainProposalComponent: React.FC = () => {
     return(jsonData);
   };
 
+  const toBuffer = (hex: string) => {
+    let Buffer = require('buffer/');
+    return Buffer.Buffer.from(hex, "hex");
+  };
+  const fromBuffer = (bytes: any) => {
+    let Buffer = require('buffer/');
+    return Buffer.Buffer.from(bytes).toString('hex');
+  };
+  const hex2a = (hexx: any) => {
+    var hex = hexx.toString();//force conversion
+    var str = '';
+    for (var i = 0; i < hex.length; i += 2)
+        str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+    return str;
+  };
+  const metadataCbortoJSON = async (cborString: string) => {
+    cborString = "a40050ca7a1457ef9f4c7f9c747f8c4a4cfa6c0150b234eefdd40e7964bffd31984a01acee0b8758401b840208e4605cbe0639cd37d04e4a721260b9d3c7c7277ce796d4d6d66e0924812758a651c06160a905167076cbc8c22093c9e0a27fdb9bf0132c50749088a258408244e44c3d1a8544a1b01075bbff8680858de676f1077fc0c3469b60b02950264640460d2e057e258032eb712888a000a45af029f07422fe0ba03021a020acae58406195d0c927a293d9740ecc344482c20282202c202a04c24296ce12124e28461109f9cd122c68ae720e5a01a134dcdf9d297ac3b261683ac611ee16ac6f9ee96058404c8f922673b3903e5f68be8c3611e33ca29e7bb89a364b64625e3799204e25bb71cd3f0944de4e7ceb1db93739823dd84a6622c398016ba33017476e278740e75840819f243fbf83b373207fd0b3bddd712f1108f1f775170f0a0804df30df08cf88888860e1507f674f61ff0007111f51517710f474f6727173f315f50ef20d741258400e72f3120f827e46b5ef5bf2259d745d881395dbcb87b4132578d3b52502a643e2968c5593ddadba0d0d3a499daca65efa0cbe861e6fc3e28b5e29c21d97f22a5830875e98bd35c62d7168991336e3b1cce5c72fd23a27342310c8447c044abff77bd5d45a7852fb62e253c3b4d2561c8d001863584039ab631ea01169abcc48afa60f53b9cd36319bfda24c8194845ef56f4054e5ffcd79a13e27fd8162df486464598166a8836f05952b53069625bc988a575e5e0b"
+    try{
+
+      const metadataJSONBuffer = await toBuffer(cborString);
+      const metadataCBOR = decode(metadataJSONBuffer);
+      const onetoHex = fromBuffer(metadataCBOR["0"])
+      console.log("cborJson", onetoHex);
+      return(metadataCBOR);
+    }catch(error){
+      console.log("cborJson Error", error)
+      return(error);
+    }
+  };
+
   useEffect(() => {
-    getProposal();
+    metadataCbortoJSON("");
+    // getProposal();
   }, []);
 
   return (

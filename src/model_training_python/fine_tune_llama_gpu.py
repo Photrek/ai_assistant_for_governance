@@ -4,6 +4,8 @@ from trl import SFTTrainer
 from huggingface_hub import login
 import torch
 
+huggingFaceToken = ""
+
 def format_data(example):
     return {
         'text': f"<|im_start|>user\n{example['prompt']}<|im_end|>\n<|im_start|>assistant\n{example['completion']}<|im_end|>\n"
@@ -17,8 +19,8 @@ dataset = dataset.map(format_data, remove_columns=['prompt', 'completion'])
 # Step 4: Model Preparation
 model_id = "meta-llama/Llama-3.2-11B-Vision"
 try:
-    login(token="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")
-    model = AutoModelForCausalLM.from_pretrained(model_id, token="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")
+    login(token=huggingFaceToken)
+    model = AutoModelForCausalLM.from_pretrained(model_id, token=huggingFaceToken)
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     
     # Move model to GPU if available

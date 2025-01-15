@@ -1,5 +1,5 @@
-# python -m venv myenv
-# source myenv/bin/activate
+# python -m venv llm_finetuning_env
+# source llm_finetuning_env/bin/activate
 # pip install -r requirements.txt
 
 from datasets import load_dataset
@@ -7,6 +7,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments,
 from trl import SFTTrainer
 from huggingface_hub import login
 import os
+
+huggingFaceToken = ""
 
 if not os.path.exists("./results"):
     os.makedirs("./results")
@@ -24,8 +26,8 @@ dataset = dataset.map(format_data, remove_columns=['prompt', 'completion'])
 # Step 4: Model Preparation
 model_id = "meta-llama/Llama-3.2-11B-Vision"
 try:
-    login(token="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")
-    model = AutoModelForCausalLM.from_pretrained(model_id, token="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")
+    login(token=huggingFaceToken)
+    model = AutoModelForCausalLM.from_pretrained(model_id, token=huggingFaceToken)
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 except Exception as e:
     print(f"An error occurred: {e}")
