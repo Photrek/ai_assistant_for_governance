@@ -1,10 +1,19 @@
+
+# python -m venv llm_finetuning_env
+# source llm_finetuning_env/bin/activate
+# pip install -r requirements.txt
+
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
 from trl import SFTTrainer
 from huggingface_hub import login
-import torch
+import os
 
 huggingFaceToken = ""
+
+if not os.path.exists("./results"):
+    os.makedirs("./results")
+    print("Created results directory.")
 
 def format_data(example):
     return {
@@ -12,21 +21,22 @@ def format_data(example):
     }
 
 # Step 3: Data Preparation
-dataset = load_dataset("json", data_files="combined1.jsonl", split="train")
-
+dataset = load_dataset("json", data_files="../training_data/jsonl/output.jsonl", split="train")
 dataset = dataset.map(format_data, remove_columns=['prompt', 'completion'])
 
+# Split dataset for training and evaluation
+dataset = dataset.train_test_split(test_size=0.1)
+train_dataset = dataset['train']
+eval_dataset = dataset['test']
+
 # Step 4: Model Preparation
-model_id = "meta-llama/Llama-3.2-11B-Vision"
+model_id = "meta-llama/Llama-3.2-1B"
 try:
     login(token=huggingFaceToken)
     model = AutoModelForCausalLM.from_pretrained(model_id, token=huggingFaceToken)
+    model.config.use_cache = False  # Set use_cache to False here
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    
-    # Move model to GPU if available
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = model.to(device)
-    
+    tokenizer.pad_token = tokenizer.eos_token  # Set pad_token to eos_token
 except Exception as e:
     print(f"An error occurred: {e}")
 
@@ -34,22 +44,27 @@ except Exception as e:
 training_args = TrainingArguments(
     output_dir="./results",
     num_train_epochs=3,
-    per_device_train_batch_size=4,  # Adjust based on your GPU's memory
-    gradient_accumulation_steps=4,
+    per_device_train_batch_size=4,  # Increased from 1, adjust based on VRAM
+    gradient_accumulation_steps=1,  # No need for accumulation with a larger batch size
     learning_rate=2e-5,
     logging_steps=10,
     save_steps=500,
-    evaluation_strategy="steps",
+    eval_strategy="steps",
     eval_steps=500,
+    gradient_checkpointing=True,
+    fp16=True,  # Enable mixed precision training to save memory and speed up
+    # max_seq_length=1024,  # Commented out, can be used if needed
 )
+
+print(f"Output directory path: {os.path.abspath(training_args.output_dir)}")
 
 trainer = SFTTrainer(
     model=model,
-    tokenizer=tokenizer,
+    processing_class=tokenizer,
     args=training_args,
-    train_dataset=dataset,
-    dataset_text_field="text",
-    max_seq_length=2048,
+    train_dataset=train_dataset,
+    eval_dataset=eval_dataset,  
+    formatting_func=lambda example: example['text'],
 )
 
 # Start fine-tuning

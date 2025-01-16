@@ -14,9 +14,10 @@ let baseUrl: string;
 // baseUrl = "https://www.essentialcardano.io/";
 // baseUrl = "https://www.emurgo.io/";
 // baseUrl = "https://iohk.io/en/research/library/";
-baseUrl = "https://iohk.io/";
+// baseUrl = "https://iohk.io/";
+baseUrl = "https://pluts.harmoniclabs.tech/";
 
-const directory = "./src/model_training/data/scraped_data/";
+const directory = "./src/training_data/raw_json/";
 const filename = `${baseUrl.replace(/^https:\/\//, '').replace(/\//g, '')}.json`;
 
 const initializeCrawl = (startUrl: string): [string, Set<string>] => {
@@ -51,22 +52,20 @@ const crawl = async(
 const extractData = (dom: JSDOM): FineTuneData => {
   // Extract and clean the prompt. Assuming the title can act as a prompt or question.
   const prompt = (dom.window.document.title || "No Title")
-    .replace(/\s*\|.*/, '') // Clean the title by removing everything after |
-    .replace(/[^a-zA-Z0-9\s.,!?]/g, '') // Keep only alphanumeric and basic punctuation for clarity
-    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/\s*\|.*/, '')
+    .replace(/[^a-zA-Z0-9\s.,!?]/g, '')
+    .replace(/\s+/g, ' ')
     .trim()
-    .replace(/\?$/, '') + "?"; // Ensure the prompt ends with a question mark for Q&A format
+    .replace(/\?$/, '') + "?";
 
-  // Function to clean text but keep code-friendly characters
   const cleanText = (text: string) => {
     // Keep alphanumeric, basic punctuation, and characters common in code
     return text
-      .replace(/[^a-zA-Z0-9\s.,!?()\[\]{}_+\-=\/*\\:;'"`~|#@$&]/g, ' ') 
-      .replace(/\s+/g, ' ') // Normalize whitespace
+      .replace(/[^a-zA-Z0-9\s.,!?()\[\]{}_+\-=\/*\\:;'"`~|#@$&]/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim();
   };
 
-  // Process paragraphs, preserving code
   const paragraphs = Array.from(dom.window.document.querySelectorAll("p, code, pre"))
     .map(element => {
       let text = element.textContent || '';
@@ -77,20 +76,17 @@ const extractData = (dom: JSDOM): FineTuneData => {
         return cleanText(text);
       }
     })
-    .filter(text => text.length > 0); // Only filter out empty strings
-    // .filter(text => text.length > 0 && text.length < 2000);
+    .filter(text => text.length > 0);
 
-  // Join paragraphs into a completion with a length check
-  // let completion = paragraphs.join('\n').substring(0, 3500);
-
-  // let completion = paragraphs.join('\n'); // No substring operation
-
-  const maxDesiredLength = 58000; // Example limit; adjust based on your model's capacity
+  // Join paragraphs into a completion but don't escape here
   let completion = paragraphs.join('\n');
+
+  // Truncate if needed
+  const maxDesiredLength = 58000;
   if (completion.length > maxDesiredLength) {
     console.warn(`Warning: Completion truncated from ${completion.length} to ${maxDesiredLength} characters.`);
     completion = completion.substring(0, maxDesiredLength);
-  };
+  }
 
   return { prompt, completion };
 };
