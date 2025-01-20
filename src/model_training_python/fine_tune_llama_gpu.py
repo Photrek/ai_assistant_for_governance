@@ -41,19 +41,24 @@ except Exception as e:
     print(f"An error occurred: {e}")
 
 # Step 5: Fine-Tuning
+# Adjust batch size or gradient accumulation if needed
+batch_size = 4
+gradient_accumulation_steps = 1  # Increase if you decrease batch size
+
 training_args = TrainingArguments(
     output_dir="./results",
     num_train_epochs=3,
-    per_device_train_batch_size=4,  # Increased from 1, adjust based on VRAM
-    gradient_accumulation_steps=1,  # No need for accumulation with a larger batch size
+    per_device_train_batch_size=batch_size,
+    gradient_accumulation_steps=gradient_accumulation_steps,
     learning_rate=2e-5,
     logging_steps=10,
     save_steps=500,
     eval_strategy="steps",
     eval_steps=500,
     gradient_checkpointing=True,
-    fp16=True,  # Enable mixed precision training to save memory and speed up
-    # max_seq_length=1024,  # Commented out, can be used if needed
+    fp16=True,
+    # Consider uncommenting and adjusting if necessary:
+    # max_seq_length=768
 )
 
 print(f"Output directory path: {os.path.abspath(training_args.output_dir)}")
