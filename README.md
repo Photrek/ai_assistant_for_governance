@@ -18,7 +18,10 @@ Then just:
    The differnces is, one will run in a web browser window the other in a electron container.
 5. Once everything is runnig you should be able to see the app, select your Ollama Model and Specify a Ogmios instance.
 
+**Note**: If you need a cardano Ogmios/Node instance, I recomend https://demeter.run, their free tier allows for a single conneciton instance which is more than enough for the dapp.
 
+
+<hr />
 # Tools
 in the `src/` dir you will see a folder called `model_tuning` in there there are several folder of interest: <br />
 
