@@ -22,10 +22,25 @@ Then just:
 # Tools
 in the `src/` dir you will see a folder called `model_tuning` in there there are several folder of interest: <br />
 
-`model_training_python`: There are two python scripts in here, one for fine tuning your llm using CPU and the other GPU.<br />
-Note: if you're using just CPU you will need a little bit more than 42GB of Ram, recomended is 64GB and it might take a while depending on which model you chose to train.<br />
-You will also need a [hugging face](https://huggingface.co/) Auth Token and have access to whichever model you are planning on fine tuning whihc you input into the Python script.
+**`model_training_python`**: There are two python scripts in here, one for fine tuning your llm using CPU and the other GPU.<br />
+
+**Note**: if you're using just CPU you will need a little bit more than 42GB of Ram, recomended is 64GB and it might take a while depending on which model you chose to train.
+<br /><br />
+You will also need a [hugging face](https://huggingface.co/) Auth Token and have access to whichever model you are planning on fine tuning.
+<br />
+If you open either python script you will see a variable called `huggingFaceToken` this is where you provide it at.
+<br />
+To use the scripts, you'll need to CD into the `model_training_python` directory and run the following commands:
+
+1)  python -m venv llm_finetuning_env
+2)  source llm_finetuning_env/bin/activate
+3)  pip install -r requirements.txt
+
+**Note**: best GPUs to use so far are Nvidia GPUs, AMD GPU's are picky depending on which Linux Distro you're using. 
+From my experience Ubuntu is much easier to use with AMD GPUs.
+<br /><hr />
 
 `webscraper` is a script written in typescript which you can run with `npm run webscrap` and you can specify the domains to scrape in the script file itself.
+<br /><hr />
 
 `tools` one simple bash script to combine all json files to jsonl files that are used by the trianing tools.
