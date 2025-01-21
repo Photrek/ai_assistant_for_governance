@@ -90,7 +90,7 @@ export const OnChainProposalComponent: React.FC = () => {
 
   useEffect(() => {
     metadataCbortoJSON("");
-    // getProposal();
+    getProposal();
   }, []);
 
   return (

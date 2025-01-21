@@ -7,8 +7,18 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments,
 from trl import SFTTrainer
 from huggingface_hub import login
 import os
+import torch
+print(torch.cuda.is_available())
+print(torch.version.hip)
 
-huggingFaceToken = ""
+# Check if AMD GPU is available
+if torch.cuda.is_available() and torch.version.hip:
+    device = "cuda"
+else:
+    device = "cpu"
+    print("No AMD GPU found, falling back to CPU.")
+
+huggingFaceToken = "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"
 
 if not os.path.exists("./results"):
     os.makedirs("./results")
@@ -20,7 +30,7 @@ def format_data(example):
     }
 
 # Step 3: Data Preparation
-dataset = load_dataset("json", data_files="../training_data/jsonl/output.jsonl", split="train")
+dataset = load_dataset("json", data_files="../training_data/jsonl/combined.jsonl", split="train")
 dataset = dataset.map(format_data, remove_columns=['prompt', 'completion'])
 
 # Split dataset for training and evaluation
@@ -32,7 +42,7 @@ eval_dataset = dataset['test']
 model_id = "meta-llama/Llama-3.2-1B"
 try:
     login(token=huggingFaceToken)
-    model = AutoModelForCausalLM.from_pretrained(model_id, token=huggingFaceToken)
+    model = AutoModelForCausalLM.from_pretrained(model_id, token=huggingFaceToken).to(device)  # Move model to GPU
     model.config.use_cache = False  # Set use_cache to False here
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token  # Set pad_token to eos_token
@@ -64,7 +74,7 @@ print(f"Output directory path: {os.path.abspath(training_args.output_dir)}")
 
 trainer = SFTTrainer(
     model=model,
-    processing_class=tokenizer,
+    tokenizer=tokenizer,  # Changed from processing_class to tokenizer
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=eval_dataset,  
