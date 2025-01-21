@@ -5,7 +5,7 @@ The future of AI Assistant for Cardano Dreps and anyone interested in Cardano Go
 # Info
 This repo is still based on webpack/babel verison of electron, eventually it'll be switched over to Vite.
 
-# How to use
+# How to use the AI and Governance UI
 
 To use the app itself you'll need to have Ollama running https://ollama.com/ with a model of your choice for now.
 
