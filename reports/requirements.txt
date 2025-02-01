@@ -1,0 +1,6 @@
+numpy
+sentence-transformers
+scikit-learn
+beautifulsoup4
+rouge_score
+bert_score
