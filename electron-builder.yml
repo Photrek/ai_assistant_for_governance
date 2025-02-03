@@ -1,5 +1,5 @@
-appId: com.cardano-merkaba.app
-productName: Cardano Merkaba
+appId: com.ai_assistant_for_governance.app
+productName: ai_assistant_for_governance
 directories:
   buildResources: build
 files:
