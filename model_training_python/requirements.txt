@@ -4,3 +4,4 @@ trl
 huggingface_hub
 torch
 bitsandbytes
+peft

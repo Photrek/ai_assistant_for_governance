@@ -5,6 +5,7 @@ from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
 from trl import SFTTrainer
 from huggingface_hub import login
+from peft import LoraConfig, get_peft_model
 import os
 import torch
 print(torch.cuda.is_available())
@@ -12,10 +13,22 @@ print(torch.version.hip)
 
 #Define user vars here
 huggingFaceToken = "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"
-#llm_model_id = "meta-llama/Llama-3.2-1B"
-llm_model_id = "deepseek-ai/DeepSeek-R1"
+llm_model_id = "meta-llama/Llama-3.2-1B"
+#llm_model_id = "deepseek-ai/DeepSeek-R1"
 epochs_train = 1
-save_steps = 200
+save_steps = 100
+learning_rate=5e-6
+
+# Use PEFT
+from peft import LoraConfig, get_peft_model
+
+peft_config = LoraConfig(
+    r=8,
+    lora_alpha=32,
+    target_modules=["q_proj", "v_proj"],
+    lora_dropout=0.05,
+    bias="none",
+)
 
 # Check if AMD GPU is available
 if torch.cuda.is_available() and torch.version.hip:
@@ -49,11 +62,14 @@ model_id = llm_model_id
 try:
     login(token=huggingFaceToken)
     model = AutoModelForCausalLM.from_pretrained(model_id, token=huggingFaceToken).to(device)  # Move model to GPU
+    model = get_peft_model(model, peft_config)  # Apply PEFT
     model.config.use_cache = False  # Set use_cache to False here
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token  # Set pad_token to eos_token
 except Exception as e:
     print(f"An error occurred during model/tokenizer loading: {e}")
+    # Ensure we set a default tokenizer if the loading fails
+    tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')  # Fallback tokenizer
 
 # Step 5: Fine-Tuning
 # Adjust batch size or gradient accumulation if needed
@@ -65,14 +81,14 @@ training_args = TrainingArguments(
     num_train_epochs=epochs_train,
     per_device_train_batch_size=batch_size,
     gradient_accumulation_steps=gradient_accumulation_steps,
-    learning_rate=2e-5,
+    learning_rate=learning_rate,
     logging_steps=10,
     save_steps=save_steps,
     eval_strategy="steps",
     eval_steps=500,
     gradient_checkpointing=True,
-    fp16=True,
-    resume_from_checkpoint="./results/checkpoints/checkpoint-200/"
+    fp16=False if device == "cpu" else True,
+    resume_from_checkpoint="./results/checkpoints/checkpoint-552"
 )
 
 print(f"Output directory path: {os.path.abspath(training_args.output_dir)}")
@@ -82,29 +98,30 @@ try:
     trainer = SFTTrainer(
         model=model,
         peft_config=None,  # If you're not using PEFT
-        processing_class=tokenizer,  # Replace tokenizer with processing_class
+        processing_class=tokenizer,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,  
         formatting_func=lambda example: example['text'],
     )
+    print(f"Trainer state before training: {trainer.state}")
     print("Checkpoint loaded successfully.")
 except Exception as e:
-    print(f"An error occurred while loading the checkpoint: {e}")
-    # Here you can decide what to do if loading fails, e.g., start from scratch or handle it differently
-    # For example, you might want to remove the resume_from_checkpoint parameter:
+    print(f"Failed to initialize trainer: {str(e)}")
+    import traceback
+    traceback.print_exc()
     training_args_no_resume = TrainingArguments(
         output_dir="./results/checkpoints",
         num_train_epochs=epochs_train,
         per_device_train_batch_size=batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
-        learning_rate=2e-5,
+        learning_rate=learning_rate,
         logging_steps=10,
         save_steps=save_steps,
         eval_strategy="steps",
         eval_steps=500,
         gradient_checkpointing=True,
-        fp16=True,
+        fp16=False if device == "cpu" else True, 
     )
     trainer = SFTTrainer(
         model=model,
@@ -121,5 +138,5 @@ except Exception as e:
 trainer.train()
 
 # Save the model after training
-model.save_pretrained("./results/trained/"+llma_model_id)
-tokenizer.save_pretrained("./results/trained/"+llma_model_id)
+model.save_pretrained("./results/trained/"+llm_model_id)
+tokenizer.save_pretrained("./results/trained/"+llm_model_id)
