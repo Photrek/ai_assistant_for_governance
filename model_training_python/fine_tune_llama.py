@@ -8,16 +8,21 @@ from huggingface_hub import login
 from peft import LoraConfig, get_peft_model
 import os
 import torch
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 print(torch.cuda.is_available())
 print(torch.version.hip)
 
 #Define user vars here
-huggingFaceToken = "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"
-llm_model_id = "meta-llama/Llama-3.2-1B"
+huggingFaceToken = os.getenv('HUGGING_FACE_TOKEN')
+if not huggingFaceToken:
+    raise ValueError("Hugging Face token not found in .env file")
+llm_model_id = "meta-llama/Llama-3.2-11B-Vision-Instruct"
 #llm_model_id = "deepseek-ai/DeepSeek-R1"
-epochs_train = 1
-save_steps = 100
-learning_rate=5e-6
+
 
 # Use PEFT
 from peft import LoraConfig, get_peft_model
@@ -73,8 +78,12 @@ except Exception as e:
 
 # Step 5: Fine-Tuning
 # Adjust batch size or gradient accumulation if needed
-batch_size = 4
+batch_size = 16  # Or even higher depending on your dataset size and model memory requirements
 gradient_accumulation_steps = 1  # Increase if you decrease batch size
+epochs_train = 3
+save_steps = 500
+learning_rate=5e-6 * (batch_size / 4)  # Scale by original batch size
+eval_steps=200  # Based on your dataset size and training speed
 
 training_args = TrainingArguments(
     output_dir="./results/checkpoints",
@@ -82,11 +91,11 @@ training_args = TrainingArguments(
     per_device_train_batch_size=batch_size,
     gradient_accumulation_steps=gradient_accumulation_steps,
     learning_rate=learning_rate,
-    logging_steps=10,
+    logging_steps=50,  # Adjust based on how often you want updates
     save_steps=save_steps,
     eval_strategy="steps",
-    eval_steps=500,
-    gradient_checkpointing=True,
+    eval_steps=eval_steps,
+    gradient_checkpointing=false,
     fp16=False if device == "cpu" else True,
     resume_from_checkpoint="./results/checkpoints/checkpoint-552"
 )
@@ -116,11 +125,11 @@ except Exception as e:
         per_device_train_batch_size=batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
         learning_rate=learning_rate,
-        logging_steps=10,
+        logging_steps=50,
         save_steps=save_steps,
         eval_strategy="steps",
-        eval_steps=500,
-        gradient_checkpointing=True,
+        eval_steps=eval_steps,
+        gradient_checkpointing=false,
         fp16=False if device == "cpu" else True, 
     )
     trainer = SFTTrainer(
