@@ -3,11 +3,11 @@ import axios from "axios";
 import { JSDOM } from "jsdom";
 import { URL } from "url";
 
-interface FineTuneData {
-  prompt: string;
-  completion: string;
+interface AlpacaData {
+  instruction: string;
+  input: string;
+  output: string;
 }
-let baseUrl: string;
 
 // baseUrl = "https://docs.cardano.org/";
 // baseUrl = "https://cips.cardano.org/";
@@ -15,9 +15,9 @@ let baseUrl: string;
 // baseUrl = "https://www.emurgo.io/";
 // baseUrl = "https://iohk.io/en/research/library/";
 // baseUrl = "https://iohk.io/";
-baseUrl = "https://pluts.harmoniclabs.tech/";
+let baseUrl = "https://pluts.harmoniclabs.tech/";
 
-const directory = "./src/training_data/raw_json/";
+const directory = "./training_data/";
 const filename = `${baseUrl.replace(/^https:\/\//, '').replace(/\//g, '')}.json`;
 
 const initializeCrawl = (startUrl: string): [string, Set<string>] => {
@@ -49,9 +49,9 @@ const crawl = async(
   return [null, visited];
 };
 
-const extractData = (dom: JSDOM): FineTuneData => {
-  // Extract and clean the prompt. Assuming the title can act as a prompt or question.
-  const prompt = (dom.window.document.title || "No Title")
+const extractData = (dom: JSDOM): AlpacaData => {
+  // Extract and clean the instruction. Here, we use the title as an instruction.
+  const instruction = (dom.window.document.title || "No Title")
     .replace(/\s*\|.*/, '')
     .replace(/[^a-zA-Z0-9\s.,!?]/g, '')
     .replace(/\s+/g, ' ')
@@ -78,22 +78,25 @@ const extractData = (dom: JSDOM): FineTuneData => {
     })
     .filter(text => text.length > 0);
 
-  // Join paragraphs into a completion but don't escape here
-  let completion = paragraphs.join('\n');
+  // Join paragraphs into the output
+  let output = paragraphs.join('\n');
 
   // Truncate if needed
   const maxDesiredLength = 58000;
-  if (completion.length > maxDesiredLength) {
-    console.warn(`Warning: Completion truncated from ${completion.length} to ${maxDesiredLength} characters.`);
-    completion = completion.substring(0, maxDesiredLength);
+  if (output.length > maxDesiredLength) {
+    console.warn(`Warning: Output truncated from ${output.length} to ${maxDesiredLength} characters.`);
+    output = output.substring(0, maxDesiredLength);
   }
 
-  return { prompt, completion };
+  // Since there's no clear input for this scraping scenario, we'll use an empty string
+  return {
+    instruction: instruction,
+    input: "",  // No specific input here, but keeping it for the format
+    output: output
+  };
 };
 
-
-
-const saveData = async (data: FineTuneData[]): Promise<void> => {
+const saveData = async (data: AlpacaData[]): Promise<void> => {
   await fs.writeFile(
     `${directory}${filename}`,
     JSON.stringify(data, null, 2),
@@ -121,7 +124,7 @@ const findUrls = (dom: JSDOM, baseUrl: string): string[] => {
 const processUrl = async(
   url: string,
   fetchFunc: (url: string) => Promise<JSDOM>,
-  saveFunc: (data: FineTuneData) => void,
+  saveFunc: (data: AlpacaData) => void,
   visited: Set<string>,
   baseUrl: string
 ): Promise<Set<string>> => {
@@ -140,8 +143,8 @@ const processUrl = async(
 };
 
 let urlsToVisit: string[] = [];
-let allData: FineTuneData[] = [];
-let seenPrompts = new Set<string>(); // To keep track of promts we've seen
+let allData: AlpacaData[] = [];
+let seenInstructions = new Set<string>(); // To keep track of instructions we've seen
 
 const [startUrl, visited] = initializeCrawl(baseUrl);
 urlsToVisit.push(startUrl);
@@ -151,12 +154,12 @@ const fetchFunc = async (url: string): Promise<JSDOM> => {
   return new JSDOM(response.data);
 };
 
-const saveFunc = (data: FineTuneData) => {
-  if (!seenPrompts.has(data.prompt)) {
+const saveFunc = (data: AlpacaData) => {
+  if (!seenInstructions.has(data.instruction)) {
     allData.push(data);
-    seenPrompts.add(data.prompt); // Mark this prompt as seen
+    seenInstructions.add(data.instruction); // Mark this instruction as seen
   } else {
-    console.log(`Skipped duplicate prompt: ${data.prompt}`);
+    console.log(`Skipped duplicate instruction: ${data.instruction}`);
   }
 };
 
@@ -165,10 +168,10 @@ const saveFunc = (data: FineTuneData) => {
     const currentUrl = urlsToVisit.shift()!;
     await processUrl(currentUrl, fetchFunc, saveFunc, visited, baseUrl);
     console.log(
-      `Visited: ${visited.size}, Queued: ${urlsToVisit.length} Titles: ${seenPrompts.size}`
+      `Visited: ${visited.size}, Queued: ${urlsToVisit.length}, Instructions: ${seenInstructions.size}`
     );
   };
 
   await saveData(allData);
-  console.log("Crawling completed and unique data saved.");
+  console.log("Crawling completed and unique data saved in Alpaca format.");
 })().catch(console.error);

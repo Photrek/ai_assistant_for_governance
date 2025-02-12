@@ -6,28 +6,7 @@ import { OllamaApi } from '../../API/ollamaAPI'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 import Markdown from 'react-markdown'
-import {
-  prism,
-  coy,
-  dark,
-  funky,
-  okaidia,
-  twilight,
-  solarizedlight,
-  solarizedDarkAtom,
-  tomorrow,
-  atomDark,
-  darcula,
-  duotoneDark,
-  duotoneLight,
-  ghcolors,
-  nightOwl,
-  oneDark,
-  oneLight,
-  vs,
-  vscDarkPlus,
-  xonokai
-} from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { prism, coy, dark, funky, okaidia, twilight, solarizedlight, solarizedDarkAtom, tomorrow, atomDark, darcula, duotoneDark, duotoneLight, ghcolors, nightOwl, oneDark, oneLight, vs, vscDarkPlus, xonokai } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useColorScheme } from '@mui/joy/styles'
 import './PromptInputInterface.css'
 
