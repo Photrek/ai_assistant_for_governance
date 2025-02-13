@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Sheet, Button, List, ListItem, Typography } from '@mui/joy'
+import { Sheet, Button, List, ListItem, Typography, Box } from '@mui/joy'
 import { wsp } from '../../API/ogmiosApi'
 import { useColorScheme } from '@mui/joy/styles'
 import { decode } from 'cbor-x'
@@ -47,7 +47,15 @@ export const OnChainProposalComponent: React.FC = () => {
   }
 
   const loadJsonMetadata = async (metadataUri: any) => {
-    const response = await fetch(metadataUri)
+    let uri: string = metadataUri
+    // https://ipfs.onchainapps.io/ipfs/
+    console.log('metadataUri', metadataUri.slice(0, 7))
+
+    if (metadataUri.slice(0, 7) === 'ipfs://') {
+      uri = 'https://ipfs.onchainapps.io/ipfs/' + metadataUri.slice(7)
+    }
+
+    const response = await fetch(uri)
     console.log('response', response)
     const jsonData: any[] = response.status !== 404 ? await response.json() : null
     console.log('jsonData', jsonData)
@@ -135,7 +143,20 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
   proposals,
   mode
 }) => {
-  // ... (keep state and functions the same)
+  // State to control the expansion of proposal details, references, and votes
+  const [expandedProposals, setExpandedProposals] = useState<{
+    [key: number]: { details: boolean; references: boolean; votes: boolean }
+  }>({})
+
+  const toggleExpand = (index: number, type: 'details' | 'references' | 'votes') => {
+    setExpandedProposals((prev) => ({
+      ...prev,
+      [index]: {
+        ...prev[index],
+        [type]: !prev[index]?.[type]
+      }
+    }))
+  }
 
   return (
     <Sheet
@@ -161,7 +182,132 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
             <React.Fragment key={index}>
               <ListItem sx={{ padding: '0', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <Card variant="outlined" sx={{ width: '100%', mb: 2, p: 2, borderRadius: 'lg' }}>
-                  {/* ... (keep all content the same) */}
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {proposal.metadata?.body?.title || 'Missing Title'}
+                  </Typography>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="body2">
+                    <strong>Type:</strong> {proposal.proposal.action.type}
+                    <br />
+                    <strong>ID:</strong> {proposal.proposal.proposal.transaction.id}
+                    <br />
+                    <strong>Since:</strong> {proposal.proposal.since.epoch}
+                    <br />
+                    <strong>Until:</strong> {proposal.proposal.until.epoch}
+                    <br />
+                    <strong>Deposit:</strong> {proposal.proposal.deposit.ada.lovelace} Lovelace
+                    <br />
+                  </Typography>
+
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      Summary:
+                    </Typography>
+                    <Divider sx={{ my: 0.5 }} />
+                    <Typography variant="body2">
+                      {proposal.metadata?.body?.abstract || 'No data available'}
+                    </Typography>
+                  </Box>
+
+                  {/* Details Button */}
+                  {expandedProposals[index]?.details ? (
+                    <>
+                      {['Motivation', 'Rationale'].map((section) => (
+                        <Box key={section} sx={{ mt: 2 }}>
+                          <Typography variant="subtitle2" fontWeight="bold">
+                            {section}
+                          </Typography>
+                          <Divider sx={{ my: 0.5 }} />
+                          <Typography variant="body2">
+                            {proposal.metadata?.body?.[section.toLowerCase()] ||
+                              'No data available'}
+                          </Typography>
+                        </Box>
+                      ))}
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{ mt: 1 }}
+                        onClick={() => toggleExpand(index, 'details')}
+                      >
+                        View Less Details
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      sx={{ mt: 1 }}
+                      onClick={() => toggleExpand(index, 'details')}
+                    >
+                      View Details
+                    </Button>
+                  )}
+
+                  <Box sx={{ mt: 2 }}>
+                    {/* References Button */}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => toggleExpand(index, 'references')}
+                    >
+                      {expandedProposals[index]?.references ? 'Hide References' : 'View References'}
+                    </Button>
+                    {expandedProposals[index]?.references && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          References:
+                        </Typography>
+                        {proposal.metadata?.body?.references?.map((ref: any, refIndex: number) => (
+                          <Box key={refIndex}>
+                            <Typography variant="body2">
+                              <strong>Type:</strong> {ref['@type']}
+                              <br />
+                              <strong>Label:</strong> {ref.label}
+                              <br />
+                              <strong>URI:</strong>{' '}
+                              <a href={ref.uri} target="_blank" rel="noopener noreferrer">
+                                {ref.uri}
+                              </a>
+                            </Typography>
+                          </Box>
+                        )) || <Typography variant="body2">No references available.</Typography>}
+                      </Box>
+                    )}
+                  </Box>
+
+                  <Box sx={{ mt: 2 }}>
+                    {/* Votes Button */}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => toggleExpand(index, 'votes')}
+                    >
+                      {expandedProposals[index]?.votes ? 'Hide Votes' : 'View Votes'}
+                    </Button>
+                    {expandedProposals[index]?.votes && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          Votes:
+                        </Typography>
+                        {proposal.proposal.votes ? (
+                          Object.entries(
+                            proposal.proposal.votes.reduce((acc: any, vote: any) => {
+                              acc[vote.issuer.role] = acc[vote.issuer.role] || { yes: 0, no: 0 }
+                              acc[vote.issuer.role][vote.vote]++
+                              return acc
+                            }, {})
+                          ).map(([role, counts]: [string, any]) => (
+                            <Typography key={role} variant="body2">
+                              <strong>{role}:</strong> Yes: {counts.yes}, No: {counts.no}
+                            </Typography>
+                          ))
+                        ) : (
+                          <Typography variant="body2">No votes recorded.</Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Box>
                 </Card>
               </ListItem>
               {index < proposals.length - 1 && <Divider component="li" />}

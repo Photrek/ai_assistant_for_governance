@@ -91,7 +91,7 @@ export const PromptInputInterface: React.FC = () => {
         ...prevMessages,
         {
           role: 'thinking',
-          content: <img src="assets/images/artificial-intelligence.gif" alt="brain" height="50" />
+          content: <img src="./assets/images/artificial-intelligence.gif" alt="brain" height="50" />
         }
       ])
       setInput('')
@@ -246,7 +246,7 @@ export const PromptInputInterface: React.FC = () => {
               }
             }}
           />
-          <SelectOllamaModel />
+          {/* <SelectOllamaModel /> */}
           <Button
             variant="outlined"
             color="primary"
