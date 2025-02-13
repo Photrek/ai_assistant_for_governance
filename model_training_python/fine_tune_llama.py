@@ -8,6 +8,7 @@
 # From home pc to base: ssh -i ~/.ssh/bakon_nerc -v -L 8080:localhost:7861 bakon@199.94.60.53
 # from base to nerc:    ssh -i /home/bakon/.ssh/dev_gpu_key -v -L 7861:localhost:7860 bakon@199.94.61.196
 # python3 -m venv .venvfactory
+# ssh -i /home/bakon/.ssh/dev_gpu_key bakon@199.94.61.196
 # source /mnt/data/RiskIntel/ai-drep/experiments/ai_assistant_for_governance/.venv/bin/activate
 # llamafactory-cli webui
 
