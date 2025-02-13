@@ -9,12 +9,12 @@ interface AlpacaData {
   output: string;
 }
 
-// baseUrl = "https://docs.cardano.org/";
-// baseUrl = "https://cips.cardano.org/";
-// baseUrl = "https://www.essentialcardano.io/";
-// baseUrl = "https://www.emurgo.io/";
-// baseUrl = "https://iohk.io/en/research/library/";
-// baseUrl = "https://iohk.io/";
+// let baseUrl = "https://docs.cardano.org/";
+// let baseUrl = "https://cips.cardano.org/";
+// let baseUrl = "https://www.essentialcardano.io/";
+// let baseUrl = "https://www.emurgo.io/";
+// let baseUrl = "https://iohk.io/en/research/library/";
+// let baseUrl = "https://iohk.io/";
 let baseUrl = "https://pluts.harmoniclabs.tech/";
 
 const directory = "./training_data/";

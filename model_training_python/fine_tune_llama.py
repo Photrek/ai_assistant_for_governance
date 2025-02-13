@@ -9,6 +9,7 @@
 # from base to nerc:    ssh -i /home/bakon/.ssh/dev_gpu_key -v -L 7861:localhost:7860 bakon@199.94.61.196
 # python3 -m venv .venvfactory
 # source /mnt/data/RiskIntel/ai-drep/experiments/ai_assistant_for_governance/.venv/bin/activate
+# llamafactory-cli webui
 
 
 from datasets import load_dataset
