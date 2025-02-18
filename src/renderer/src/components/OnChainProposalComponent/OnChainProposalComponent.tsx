@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { Sheet, Button, List, ListItem, Typography, Box, Card, Divider } from '@mui/joy';
 import { wsp } from '../../API/ogmiosApi';
 import { useColorScheme } from '@mui/joy/styles';
@@ -177,12 +177,15 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
     }));
   };
 
-  function renderMessageContent(msg: any, mode: string | undefined) {
-    if (typeof msg !== 'string') return msg;
+  function renderMessageContent(msg: string, mode: string | undefined): ReactNode {
+    if (typeof msg !== 'string') {
+      console.warn('Expected msg to be a string, received:', typeof msg);
+      return msg as ReactNode; // Type assertion since we can't return 'msg' directly as ReactNode
+    }
   
     const parts = msg.split(/(```(\w+)?([\s\S]*?)```|\$\$[\s\S]*?\$\$|(?<!\\)\$(?:(?!\\).)*\$(?<!\\))/);
   
-    const elements: React.ReactNode[] = [];
+    const elements: ReactNode[] = [];
   
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
@@ -217,9 +220,9 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
           );
         } else {  // Regular text or inline math
           const inlineMathRegex = /\$(.*?)\$/g;
-          let match: any;
+          let match: RegExpExecArray | null;
           let lastIndex = 0;
-          const segments = [];
+          const segments: string[] = [];
           
           while ((match = inlineMathRegex.exec(part))) {
             if (match.index > lastIndex) {
