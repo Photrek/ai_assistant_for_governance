@@ -5,9 +5,9 @@ export const OllamaApi = async ( apiRequest: string, options: {[key: string]: an
   console.log("OllamaApi Endpoint: ", endpoint);
   try {
     const response = await fetch(`http://${endpoint[0]}:${endpoint[1]}/api/${apiRequest}`, options);
-    console.log(" OllamaApi Response: ", response);
+    // console.log(" OllamaApi Response: ", response);
     const data: any = await response.json();
-    console.log("ollama api: ", data);
+    // console.log("ollama api: ", data);
     return(data);
   } catch (error) {
       console.log("OllamaApi Error: ", error);

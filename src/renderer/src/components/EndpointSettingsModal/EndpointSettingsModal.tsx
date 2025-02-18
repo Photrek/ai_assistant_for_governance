@@ -40,14 +40,14 @@ export const EndpointSettingsModal: React.FC = () => {
           <ModalClose />
           <Typography level="h4" id="modal-title">Endpoint Settings</Typography>
           <Sheet sx={{ p: 2 }}>
-            <Typography level="h5" id="modal-description">Enter endpoints for your Ollama instance.</Typography>
+            <Typography level="body-md" id="modal-description">Enter endpoints for your Ollama instance.</Typography>
             <Input
               sx={{ mt: 1 }}
               fullWidth
               variant="outlined"
               size="md"         
               placeholder={"IP Address: " + (!aiEndpoint ? 'localhost' : JSON.parse(aiEndpoint)[0])}
-              value={hostAddress}
+              value={hostAddress ? hostAddress : 'localhost'}
               onChange={(e) => setHostAddress(e.target.value)}
             />
             <Input
@@ -56,19 +56,19 @@ export const EndpointSettingsModal: React.FC = () => {
               variant="outlined"
               size="md"  
               placeholder={"Port Number: " + (!aiEndpoint ? '11434' : JSON.parse(aiEndpoint)[1])}
-              value={portNumber}
+              value={portNumber ? portNumber : '11434'}
               onChange={(e) => setPortNumber(e.target.value)}
             />
           </Sheet>
           <Sheet sx={{ p: 2 }}>
-            <Typography level="h5" id="modal-description">Enter Ogmios endpoint.</Typography>
+            <Typography level="body-md" id="modal-description">Enter Ogmios endpoint.</Typography>
             <Input
               sx={{ mt: 1 }}
               fullWidth
               variant="outlined"
               size="md"         
               placeholder="Ogmios"
-              value={ogmiosHook}
+              value={ogmiosHook ? ogmiosHook : "https://ogmismain.onchainapps.io"}
               onChange={(e) => setOgmiosHook(e.target.value)}
             />
           </Sheet>

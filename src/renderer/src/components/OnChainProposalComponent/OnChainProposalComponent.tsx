@@ -1,152 +1,171 @@
-import React, { useState, useEffect } from 'react'
-import { Sheet, Button, List, ListItem, Typography, Box } from '@mui/joy'
-import { wsp } from '../../API/ogmiosApi'
-import { useColorScheme } from '@mui/joy/styles'
-import { decode } from 'cbor-x'
+import React, { useState, useEffect } from 'react';
+import { Sheet, Button, List, ListItem, Typography, Box, Card, Divider } from '@mui/joy';
+import { wsp } from '../../API/ogmiosApi';
+import { useColorScheme } from '@mui/joy/styles';
+import { decode } from 'cbor-x';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import Markdown from 'react-markdown';
+import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { BlockMath, InlineMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 
 export const OnChainProposalComponent: React.FC = () => {
-  const [proposals, setProposals] = useState<any[]>([])
-  const { mode, setMode } = useColorScheme()
+  const [proposals, setProposals] = useState<any[]>([]);
+  const { mode, setMode } = useColorScheme();
 
-  console.log('mode', mode)
+  console.log('mode', mode);
 
   const getProposal = async () => {
-    const method: string = 'queryLedgerState/governanceProposals'
+    const method: string = 'queryLedgerState/governanceProposals';
     const params = {
       params: {
         proposals: []
       }
-    }
+    };
 
-    let wspRes = wsp(method, params)
+    let wspRes = wsp(method, params);
     wspRes.onmessage = (e: any) => {
-      const results = JSON.parse(e.data)
-      parseResults(results.result)
-    }
-  }
+      const results = JSON.parse(e.data);
+      parseResults(results.result);
+    };
+  };
 
-  const parseResults = async (results: any[]): Promise<void> => {
-    setProposals([])
-    console.log('results', results)
+  async function parseResults(results: any[]): Promise<void> {
+    setProposals([]);
+    console.log('results', results);
     try {
       const parsedProposals = await Promise.all(
         results.map(async (proposal: any) => {
-          const metadataUri = proposal.metadata.url
-          const metadata: any = await loadJsonMetadata(metadataUri)
-          const propInfo: any = { proposal, metadata }
-          console.log('propInfo', propInfo)
-          return propInfo
+          const metadataUri = proposal.metadata.url;
+          const metadata: any = await loadJsonMetadata(metadataUri);
+          const propInfo: any = { proposal, metadata };
+          console.log('propInfo', propInfo);
+          return propInfo;
         })
-      )
-      setProposals((prevArray: any[]) => [...prevArray, ...parsedProposals])
-      console.log('parsedProposals', parsedProposals)
+      );
+      setProposals((prevArray: any[]) => [...prevArray, ...parsedProposals]);
+      console.log('parsedProposals', parsedProposals);
     } catch (error) {
-      console.log('Error parsing results:', error)
+      console.log('Error parsing results:', error);
       // Handle error appropriately, perhaps by showing a message to the user
     }
-  }
+  };
+  
+  const preprocessMath = (text: string): string => {
+    return text
+      .replace(/times/g, '\\cdot')
+      .replace(/frac/g, '\\frac')
+      .replace(/\\(.)/g, '$1'); // Unescapes backslashes if needed
+  };
 
-  const loadJsonMetadata = async (metadataUri: any) => {
-    let uri: string = metadataUri
-    // https://ipfs.onchainapps.io/ipfs/
-    console.log('metadataUri', metadataUri.slice(0, 7))
-
-    if (metadataUri.slice(0, 7) === 'ipfs://') {
-      uri = 'https://ipfs.onchainapps.io/ipfs/' + metadataUri.slice(7)
+  const loadJsonMetadata = async (metadataUri: string) => {
+    let uri = metadataUri.startsWith('ipfs://') 
+      ? `https://ipfs.onchainapps.io/ipfs/${metadataUri.slice(7)}` 
+      : metadataUri;
+  
+    try {
+      const response = await fetch(uri);
+      if (!response.ok) {
+        console.warn('Failed to fetch metadata:', response.statusText);
+        return null;
+      }
+      const jsonData = await response.json();
+      if (jsonData.body) {
+        for (const key in jsonData.body) {
+          if (typeof jsonData.body[key] === 'string') {
+            jsonData.body[key] = preprocessMath(jsonData.body[key]);
+          }
+        }
+      }
+      console.log('Metadata fetched:', jsonData);
+      return jsonData;
+    } catch (error) {
+      console.error('Error loading metadata:', error);
+      return null;
     }
-
-    const response = await fetch(uri)
-    console.log('response', response)
-    const jsonData: any[] = response.status !== 404 ? await response.json() : null
-    console.log('jsonData', jsonData)
-    return jsonData
-  }
+  };
 
   const toBuffer = (hex: string) => {
-    let Buffer = require('buffer/')
-    return Buffer.Buffer.from(hex, 'hex')
-  }
+    let Buffer = require('buffer/');
+    return Buffer.Buffer.from(hex, 'hex');
+  };
+
   const fromBuffer = (bytes: any) => {
-    let Buffer = require('buffer/')
-    return Buffer.Buffer.from(bytes).toString('hex')
-  }
+    let Buffer = require('buffer/');
+    return Buffer.Buffer.from(bytes).toString('hex');
+  };
+
   const hex2a = (hexx: any) => {
-    var hex = hexx.toString()
-    var str = ''
+    var hex = hexx.toString();
+    var str = '';
     for (var i = 0; i < hex.length; i += 2)
-      str += String.fromCharCode(parseInt(hex.substr(i, 2), 16))
-    return str
-  }
+      str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+    return str;
+  };
+
   const metadataCbortoJSON = async (cborString: string) => {
-    cborString = 'your_cbor_string_here' // Replace with actual string or remove this line if you're passing it
+    cborString = 'your_cbor_string_here'; // Replace with actual string or remove this line if you're passing it
     try {
-      const metadataJSONBuffer = await toBuffer(cborString)
-      const metadataCBOR = decode(metadataJSONBuffer)
-      const onetoHex = fromBuffer(metadataCBOR['0'])
-      console.log('cborJson', onetoHex)
-      return metadataCBOR
+      const metadataJSONBuffer = await toBuffer(cborString);
+      const metadataCBOR = decode(metadataJSONBuffer);
+      const onetoHex = fromBuffer(metadataCBOR['0']);
+      console.log('cborJson', onetoHex);
+      return metadataCBOR;
     } catch (error) {
-      console.log('cborJson Error', error)
-      return error
+      console.log('cborJson Error', error);
+      return error;
     }
-  }
+  };
 
   useEffect(() => {
-    metadataCbortoJSON('')
-    getProposal()
-  }, [])
+    getProposal();
+  }, []);
 
   return (
-    <>
+    <Sheet
+      sx={{
+        mt: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '90vh',
+        borderRadius: 'md',
+        overflow: 'hidden',
+        boxShadow: 'sm',
+        bgcolor: mode === 'dark' ? 'background.surface' : 'background.body',
+        '@media (max-width: 960px)': {
+          height: 'calc(100vh - 64px)'
+        }
+      }}
+    >
       <Sheet
         sx={{
-          mt: 20,
-          display: 'flex',
-          flexDirection: 'column',
-          width: '100%',
-          height: '90vh',
-          borderRadius: 'md',
-          overflow: 'hidden',
-          boxShadow: 'sm',
-          backgroundColor: mode === 'dark' ? 'background.surface' : 'background.body',
-          [`@media (max-width: 960px)`]: {
-            height: 'calc(100vh - 64px)'
-          }
+          flexGrow: 1,
+          overflowY: 'auto',
+          p: 2,
+          bgcolor: mode === 'dark' ? 'background.surface' : 'background.body'
         }}
       >
-        {/* Proposal */}
-        <Sheet
-          sx={{
-            flexGrow: 1,
-            overflowY: 'auto',
-            p: 2,
-            bgcolor: mode === 'dark' ? 'background.surface' : 'background.body'
-          }}
-        >
-          <List>
-            <GovernanceProposals proposals={proposals} mode={mode} />
-          </List>
-        </Sheet>
+        <List>
+          <GovernanceProposals proposals={proposals} mode={mode} />
+        </List>
       </Sheet>
-    </>
-  )
-}
-
-import { Divider, Card } from '@mui/joy'
+    </Sheet>
+  );
+};
 
 interface Proposal {
-  proposal: any
-  metadata: any
+  proposal: any;
+  metadata: any;
 }
 
 const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | undefined }> = ({
   proposals,
   mode
 }) => {
-  // State to control the expansion of proposal details, references, and votes
   const [expandedProposals, setExpandedProposals] = useState<{
     [key: number]: { details: boolean; references: boolean; votes: boolean }
-  }>({})
+  }>({});
 
   const toggleExpand = (index: number, type: 'details' | 'references' | 'votes') => {
     setExpandedProposals((prev) => ({
@@ -155,8 +174,82 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
         ...prev[index],
         [type]: !prev[index]?.[type]
       }
-    }))
-  }
+    }));
+  };
+
+  function renderMessageContent(msg: any, mode: string | undefined) {
+    if (typeof msg !== 'string') return msg;
+  
+    const parts = msg.split(/(```(\w+)?([\s\S]*?)```|\$\$[\s\S]*?\$\$|(?<!\\)\$(?:(?!\\).)*\$(?<!\\))/);
+  
+    const elements: React.ReactNode[] = [];
+  
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+  
+      if (part && typeof part === 'string') { 
+        if (part.startsWith('```')) { // Code block
+          const language = parts[i + 1] || 'text';
+          const code = parts[i + 2]?.trim() || '';
+          if (code) {
+            console.log('language: ', language);
+            elements.push(
+              <Sheet key={`code-${i}`} variant="outlined" sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
+                <Divider />
+                <Typography level="body-sm" sx={{ fontWeight: 'bold' }}>AI code block:</Typography>
+                <SyntaxHighlighter
+                  key={`code-block-${i}`}
+                  language={language}
+                  style={mode === 'dark' ? oneDark : duotoneLight}
+                >
+                  {code}
+                </SyntaxHighlighter>
+              </Sheet>
+            );
+            i += 2;
+          }
+        } else if (part.startsWith('$$') && part.endsWith('$$')) { // Block Math
+          const math = part.slice(2, -2).trim();
+          elements.push(
+            <Typography key={`math-${i}`} level="body-md">
+              <BlockMath>{math}</BlockMath>
+            </Typography>
+          );
+        } else {  // Regular text or inline math
+          const inlineMathRegex = /\$(.*?)\$/g;
+          let match: any;
+          let lastIndex = 0;
+          const segments = [];
+          
+          while ((match = inlineMathRegex.exec(part))) {
+            if (match.index > lastIndex) {
+              segments.push(part.slice(lastIndex, match.index));
+            }
+            segments.push(match[0]);
+            lastIndex = inlineMathRegex.lastIndex;
+          }
+          if (lastIndex < part.length) {
+            segments.push(part.slice(lastIndex));
+          }
+  
+          const renderedSegments = segments.map((segment, idx) => {
+            if (segment.startsWith('$') && segment.endsWith('$')) {
+              return <InlineMath key={`inline-math-${idx}`}>{segment.slice(1, -1)}</InlineMath>;
+            }
+            return <Markdown key={`text-${idx}`}>{segment}</Markdown>;
+          });
+  
+          elements.push(
+            <Typography key={`desc-${i}`} level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
+              {renderedSegments}
+            </Typography>
+          );
+        }
+      }
+    }
+  
+    return elements.length > 0 ? elements : <Typography level="body-md">{msg}</Typography>;
+  };
 
   return (
     <Sheet
@@ -168,12 +261,12 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
         borderRadius: 'md',
         overflow: 'hidden',
         boxShadow: 'none',
-        backgroundColor: mode === 'dark' ? 'background.surface' : 'background.body'
+        bgcolor: mode === 'dark' ? 'background.surface' : 'background.body'
       }}
     >
       <Sheet sx={{ bgcolor: mode ? 'background.surface' : 'background.level1' }}>
-        <Typography level="body-md">Onchain Governance Proposals</Typography>
-        <hr />
+        <Typography level="h4">Onchain Governance Proposals</Typography>
+        <Divider />
       </Sheet>
 
       <Sheet sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
@@ -182,31 +275,24 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
             <React.Fragment key={index}>
               <ListItem sx={{ padding: '0', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <Card variant="outlined" sx={{ width: '100%', mb: 2, p: 2, borderRadius: 'lg' }}>
-                  <Typography variant="subtitle1" fontWeight="bold">
+                  <Typography level="h4" fontWeight="bold">
                     {proposal.metadata?.body?.title || 'Missing Title'}
                   </Typography>
                   <Divider sx={{ my: 1 }} />
-                  <Typography variant="body2">
-                    <strong>Type:</strong> {proposal.proposal.action.type}
-                    <br />
-                    <strong>ID:</strong> {proposal.proposal.proposal.transaction.id}
-                    <br />
-                    <strong>Since:</strong> {proposal.proposal.since.epoch}
-                    <br />
-                    <strong>Until:</strong> {proposal.proposal.until.epoch}
-                    <br />
+                  <Typography level="body-sm" sx={{ mb: 1 }}>
+                    <strong>Type:</strong> {proposal.proposal.action.type}<br />
+                    <strong>ID:</strong> {proposal.proposal.proposal.transaction.id}<br />
+                    <strong>Since:</strong> {proposal.proposal.since.epoch}<br />
+                    <strong>Until:</strong> {proposal.proposal.until.epoch}<br />
                     <strong>Deposit:</strong> {proposal.proposal.deposit.ada.lovelace} Lovelace
-                    <br />
                   </Typography>
 
                   <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" fontWeight="bold">
+                    <Typography level="h4" fontWeight="bold">
                       Summary:
                     </Typography>
                     <Divider sx={{ my: 0.5 }} />
-                    <Typography variant="body2">
-                      {proposal.metadata?.body?.abstract || 'No data available'}
-                    </Typography>
+                    {renderMessageContent(proposal.metadata?.body?.abstract || 'No data available', mode)}
                   </Box>
 
                   {/* Details Button */}
@@ -214,19 +300,16 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
                     <>
                       {['Motivation', 'Rationale'].map((section) => (
                         <Box key={section} sx={{ mt: 2 }}>
-                          <Typography variant="subtitle2" fontWeight="bold">
+                          <Typography level="h4" fontWeight="bold">
                             {section}
                           </Typography>
                           <Divider sx={{ my: 0.5 }} />
-                          <Typography variant="body2">
-                            {proposal.metadata?.body?.[section.toLowerCase()] ||
-                              'No data available'}
-                          </Typography>
+                          {renderMessageContent(proposal.metadata?.body?.[section.toLowerCase()] || 'No data available', mode)}
                         </Box>
                       ))}
                       <Button
                         variant="outlined"
-                        size="small"
+                        size="sm"
                         sx={{ mt: 1 }}
                         onClick={() => toggleExpand(index, 'details')}
                       >
@@ -236,7 +319,7 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
                   ) : (
                     <Button
                       variant="outlined"
-                      size="small"
+                      size="sm"
                       sx={{ mt: 1 }}
                       onClick={() => toggleExpand(index, 'details')}
                     >
@@ -245,65 +328,63 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
                   )}
 
                   <Box sx={{ mt: 2 }}>
-                    {/* References Button */}
                     <Button
                       variant="outlined"
-                      size="small"
+                      size="sm"
                       onClick={() => toggleExpand(index, 'references')}
                     >
                       {expandedProposals[index]?.references ? 'Hide References' : 'View References'}
                     </Button>
                     {expandedProposals[index]?.references && (
                       <Box sx={{ mt: 2 }}>
-                        <Typography variant="subtitle2" fontWeight="bold">
+                        <Typography level="h4" fontWeight="bold">
                           References:
                         </Typography>
                         {proposal.metadata?.body?.references?.map((ref: any, refIndex: number) => (
                           <Box key={refIndex}>
-                            <Typography variant="body2">
+                            <Typography level="body-sm">
                               <strong>Type:</strong> {ref['@type']}
                               <br />
                               <strong>Label:</strong> {ref.label}
                               <br />
-                              <strong>URI:</strong>{' '}
+                              <strong>URI:</strong> 
                               <a href={ref.uri} target="_blank" rel="noopener noreferrer">
                                 {ref.uri}
                               </a>
                             </Typography>
                           </Box>
-                        )) || <Typography variant="body2">No references available.</Typography>}
+                        )) || <Typography level="body-sm">No references available.</Typography>}
                       </Box>
                     )}
                   </Box>
 
                   <Box sx={{ mt: 2 }}>
-                    {/* Votes Button */}
                     <Button
                       variant="outlined"
-                      size="small"
+                      size="sm"
                       onClick={() => toggleExpand(index, 'votes')}
                     >
                       {expandedProposals[index]?.votes ? 'Hide Votes' : 'View Votes'}
                     </Button>
                     {expandedProposals[index]?.votes && (
                       <Box sx={{ mt: 2 }}>
-                        <Typography variant="subtitle2" fontWeight="bold">
+                        <Typography level="h4" fontWeight="bold">
                           Votes:
                         </Typography>
                         {proposal.proposal.votes ? (
                           Object.entries(
                             proposal.proposal.votes.reduce((acc: any, vote: any) => {
-                              acc[vote.issuer.role] = acc[vote.issuer.role] || { yes: 0, no: 0 }
-                              acc[vote.issuer.role][vote.vote]++
-                              return acc
+                              acc[vote.issuer.role] = acc[vote.issuer.role] || { yes: 0, no: 0 };
+                              acc[vote.issuer.role][vote.vote]++;
+                              return acc;
                             }, {})
                           ).map(([role, counts]: [string, any]) => (
-                            <Typography key={role} variant="body2">
+                            <Typography key={role} level="body-sm">
                               <strong>{role}:</strong> Yes: {counts.yes}, No: {counts.no}
                             </Typography>
                           ))
                         ) : (
-                          <Typography variant="body2">No votes recorded.</Typography>
+                          <Typography level="body-sm">No votes recorded.</Typography>
                         )}
                       </Box>
                     )}
@@ -316,5 +397,5 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
         </List>
       </Sheet>
     </Sheet>
-  )
-}
+  );
+};

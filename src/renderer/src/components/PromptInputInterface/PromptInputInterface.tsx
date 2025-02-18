@@ -4,11 +4,12 @@ import SendIcon from '@mui/icons-material/Send'
 import { useModel } from '../../hooks/useModel'
 import { OllamaApi } from '../../API/ollamaAPI'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
+// import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 import Markdown from 'react-markdown'
-import { prism, coy, dark, funky, okaidia, twilight, solarizedlight, solarizedDarkAtom, tomorrow, atomDark, darcula, duotoneDark, duotoneLight, ghcolors, nightOwl, oneDark, oneLight, vs, vscDarkPlus, xonokai } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { duotoneLight, oneDark,} from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useColorScheme } from '@mui/joy/styles'
 import './PromptInputInterface.css'
+import brain from "../../../../assets/artificial-intelligence.gif"
 
 // Define the type for a message
 interface Message {
@@ -52,7 +53,7 @@ export const PromptInputInterface: React.FC = () => {
         const language = parts[i] || 'text'
         const code = parts[i + 1]?.trim() || ''
         if (code) {
-          console.log('language: ', language)
+          // console.log('language: ', language)
           elements.push(
             <Sheet key={`code-${i}`} variant="outlined" sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
               <hr />
@@ -78,7 +79,7 @@ export const PromptInputInterface: React.FC = () => {
       role: 'user',
       content: input
     })
-    console.log('Message: ', message)
+   // console.log('Message: ', message)
     if (input.trim()) {
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -91,7 +92,7 @@ export const PromptInputInterface: React.FC = () => {
         ...prevMessages,
         {
           role: 'thinking',
-          content: <img src="./assets/images/artificial-intelligence.gif" alt="brain" height="50" />
+          content: <img src={brain} alt="brain" height="50" />
         }
       ])
       setInput('')
@@ -119,9 +120,9 @@ export const PromptInputInterface: React.FC = () => {
     }
 
     const response = await OllamaApi('chat', optionsChat)
-    console.log('Response: ', response)
+    // console.log('Response: ', response)
     const renderedInput: any = await renderMessageContent(response.message.content)
-    console.log('Rendered Input: ', renderedInput)
+    // console.log('Rendered Input: ', renderedInput)
     setMessages((prevMessages) => [
       ...prevMessages,
       {
@@ -175,7 +176,7 @@ export const PromptInputInterface: React.FC = () => {
           }}
         >
           <List>
-            <Typography level="body-md">AI chat box</Typography>
+            <Typography level="body-md">AI chat box(Currently only available with Ollama running localy)</Typography>
             <hr />
             {messages.map((msg, index) => (
               <ListItem

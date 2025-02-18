@@ -1,7 +1,7 @@
 @import './base.css';
 
 body {
-  background-image: url('./Photrek.jpg');
+  background-image: url('../../assets/Photrek.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
