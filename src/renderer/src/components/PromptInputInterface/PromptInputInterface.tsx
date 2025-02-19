@@ -6,10 +6,13 @@ import { OllamaApi } from '../../API/ollamaAPI'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 // import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 import Markdown from 'react-markdown'
-import { duotoneLight, oneDark,} from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useColorScheme } from '@mui/joy/styles'
 import './PromptInputInterface.css'
-import brain from "../../../../assets/artificial-intelligence.gif"
+import brain from '../../../../assets/artificial-intelligence.gif'
+import { searchDomain } from './aiAgent'
+// Environment="OLLAMA_MODELS=/usr/share/ollama/.ollama/models"
+// Environment="OLLAMA_ORIGINS=*"
 
 // Define the type for a message
 interface Message {
@@ -20,12 +23,14 @@ interface Message {
 export const PromptInputInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const [messageHistory, setMessageHistory] = useState<Message[]>([])
+  const [agentMessage, setAgentMessages] = useState<Message[]>([])
+  const [agentMessageHistory, setAgentMessageHistory] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [model, setModel]: any = useModel()
   const { mode, setMode } = useColorScheme()
   const [images, setImages] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
+  setModel("llama3.1:8b")
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
@@ -73,19 +78,113 @@ export const PromptInputInterface: React.FC = () => {
     return elements.length > 0 ? elements : <Typography>{msg}</Typography>
   }
 
-  // Function to handle sending a message
-  const sendMessage = async () => {
-    let message: any = messageHistory.concat({
+  const sendAgentMessage = async () => {
+    const renderedInput: any = await renderMessageContent(input)
+    console.log('Rendered Input: ', renderedInput)
+
+    let message: any = agentMessageHistory.concat({
       role: 'user',
       content: input
     })
-   // console.log('Message: ', message)
+    // console.log('Message: ', message)
     if (input.trim()) {
-      setMessages((prevMessages) => [
+      setAgentMessages((prevMessages) => [
         ...prevMessages,
         {
           role: 'user',
           content: input
+        }
+      ])
+      setAgentMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          role: 'thinking',
+          content: <img src={brain} alt="brain" height="50" />
+        }
+      ])
+      setInput('')
+    }
+    if (input.trim()) {
+      setAgentMessageHistory((prevMessages) => [
+        ...prevMessages,
+        {
+          role: 'user',
+          content: input
+        }
+      ])
+    }
+
+    const searchData = await searchDomain('https://cips.cardano.org/')
+
+    const optionsAgentChat = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: message,
+        stream: false,
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search',
+              description: 'Perform a web search',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string', description: 'The search query' }
+                },
+                required: ['query']
+              }
+            }
+          }
+        ],
+        searchData: searchData
+      })
+    }
+
+    const response = await OllamaApi('chat', optionsAgentChat)
+    console.log('optionsAgentChat: ', response)
+
+    /*
+    const renderedResponse: any = await renderMessageContent(response.message.content)
+    console.log('Rendered Input: ', renderedResponse)
+
+    setAgentMessages((prevMessages) => [
+      ...prevMessages,
+      {
+        role: 'assistant',
+        content: renderedResponse
+      }
+    ])
+
+    setAgentMessageHistory((prevMessages) => [
+      ...prevMessages,
+      {
+        role: 'assistant',
+        content: response.message.content
+      }
+    ])
+    */
+    setAgentMessages((prevItems) => prevItems.filter((item) => item['role'] !== 'thinking'))
+  }
+
+  // Function to handle sending a message
+  const sendMessage = async () => {
+    const renderedInput: any = await renderMessageContent(input)
+    let message: any = messageHistory.concat({
+      role: 'user',
+      content: renderedInput
+    })
+    // console.log('Message: ', message)
+    if (renderedInput.trim()) {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          role: 'user',
+          content: renderedInput
         }
       ])
       setMessages((prevMessages) => [
@@ -97,12 +196,12 @@ export const PromptInputInterface: React.FC = () => {
       ])
       setInput('')
     }
-    if (input.trim()) {
+    if (renderedInput.trim()) {
       setMessageHistory((prevMessages) => [
         ...prevMessages,
         {
           role: 'user',
-          content: input
+          content: renderedInput
         }
       ])
     }
@@ -121,13 +220,13 @@ export const PromptInputInterface: React.FC = () => {
 
     const response = await OllamaApi('chat', optionsChat)
     // console.log('Response: ', response)
-    const renderedInput: any = await renderMessageContent(response.message.content)
-    // console.log('Rendered Input: ', renderedInput)
+    const renderedResponse: any = await renderMessageContent(response.message.content)
+    // console.log('Rendered Input: ', renderedResponse)
     setMessages((prevMessages) => [
       ...prevMessages,
       {
         role: 'assistant',
-        content: renderedInput
+        content: renderedResponse
       }
     ])
 
@@ -176,7 +275,9 @@ export const PromptInputInterface: React.FC = () => {
           }}
         >
           <List>
-            <Typography level="body-md">AI chat box(Currently only available with Ollama running localy)</Typography>
+            <Typography level="body-md">
+              AI chat box(Currently only available with Ollama running localy)
+            </Typography>
             <hr />
             {messages.map((msg, index) => (
               <ListItem
@@ -231,7 +332,8 @@ export const PromptInputInterface: React.FC = () => {
                   setInput((prevInput) => prevInput + '\n')
                 } else {
                   // Send message
-                  sendMessage()
+                  // sendMessage()
+                  sendAgentMessage()
                 }
               }
             }}
@@ -252,7 +354,7 @@ export const PromptInputInterface: React.FC = () => {
             variant="outlined"
             color="primary"
             endDecorator={<SendIcon />}
-            onClick={sendMessage}
+            onClick={sendAgentMessage}
             sx={{
               ml: 1, // Assuming 1 spacing unit is equivalent to 8px, adjust as needed
               mt: 1, // Add margin top for mobile view, same as ml for consistency
