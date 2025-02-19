@@ -1,0 +1,147 @@
+{
+  "openrpc": "1.2.6",
+  "info": {
+    "version": "0.0.1",
+    "title": "ai agent api",
+    "description": "Backend Stuff for ai agent"
+  },
+  "methods": [
+    {
+      "name": "create_user",
+      "description" : "Registers a new User.",
+      "params" : [
+        {
+          "$ref": "#/components/contentDescriptors/JWT"
+        }
+      ],
+      "result": {
+        "name": "create_user_result",
+        "description": "Returns success or no.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    }
+  ],
+  "components": {
+    "contentDescriptors": {
+      "JWT": {
+        "name": "JWT",
+        "description": "JWT token for authentication.",
+        "required": true,
+        "schema": {
+          "title": "JWT",
+          "type": "string"
+        }
+      },
+      "username": {
+        "name": "username",
+        "description": "username that's logging in.",
+        "required": true,
+        "schema": {
+          "title": "username",
+          "type": "string"
+        }
+      },
+      "password": {
+        "name": "password",
+        "description": "password that's logging in.",
+        "required": true,
+        "schema": {
+          "title": "password",
+          "type": "string"
+        }
+      },
+      "user_image": {
+        "name": "user_image",
+        "description": "User image stored in Base64 format",
+        "required": true,
+        "schema": {
+          "title": "user_image",
+          "type": "string"
+        }
+      },
+      "user_role": {
+        "name": "user_role",
+        "description": "role of the user.",
+        "required": true,
+        "schema": {
+          "title": "user_role",
+          "type": "string"
+        }
+      },
+      "user_firstname": {
+        "name": "user_firstname",
+        "description": "first name of the user.",
+        "required": true,
+        "schema": {
+          "title": "user_firstname",
+          "type": "string"
+        }
+      },
+      "user_lastname": {
+        "name": "user_lastname",
+        "description": "last name of the user.",
+        "required": true,
+        "schema": {
+          "title": "user_lastname",
+          "type": "string"
+        }
+      },
+      "user_country": {
+        "name": "user_country",
+        "description": "country of the user.",
+        "required": true,
+        "schema": {
+          "title": "user_country",
+          "type": "string"
+        }
+      },
+      "user_state": {
+        "name": "user_state",
+        "description": "state of the user.",
+        "required": true,
+        "schema": {
+          "title": "user_state",
+          "type": "string"
+        }
+      },
+      "user_postalcode": {
+        "name": "user_postalcode",
+        "description": "postal code of the user.",
+        "required": true,
+        "schema": {
+          "title": "user_postalcode",
+          "type": "string"
+        }
+      },
+      "user_phone": {
+        "name": "user_phone",
+        "description": "phone number of the user.",
+        "required": true,
+        "schema": {
+          "title": "user_phone",
+          "type": "string"
+        }
+      },
+      "user_address": {
+        "name": "user_address",
+        "description": "address of the user.",
+        "required": true,
+        "schema": {
+          "title": "user_address",
+          "type": "string"
+        }
+      },
+      "user_city": {
+        "name": "user_city",
+        "description": "city of the user.",
+        "required": true,
+        "schema": {
+          "title": "user_city",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

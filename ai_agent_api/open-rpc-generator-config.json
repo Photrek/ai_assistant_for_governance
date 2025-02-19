@@ -1,0 +1,16 @@
+{
+    "openrpcDocument": "openrpc.json",
+    "outDir": "./",
+    "components": [
+        {
+            "type": "client",
+            "name": "client",
+            "language": "typescript"
+        },
+        {
+            "type": "server",
+            "name": "server",
+            "language": "typescript"
+        }
+    ]
+}

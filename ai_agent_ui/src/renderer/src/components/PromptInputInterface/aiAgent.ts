@@ -1,12 +1,20 @@
 import * as cheerio from 'cheerio';
-import axios from 'axios';
 
 export const searchDomain = async (domain: string) => {
   try {
-    const response = await axios.get(`https://reactproxy.bakon.dev/scrape`, {
-      params: { url: domain }
+    const response = await fetch(`https://reactproxy.bakon.dev/scrape?url=${encodeURIComponent(domain)}`, {
+      method: 'GET',
+      mode: 'cors', // explicitly set to cors
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
-    const html = response.data;
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch the page: ${response.statusText}`);
+    }
+
+    const html = await response.text();
     const $ = cheerio.load(html);
     const data: string[] = [];
 
