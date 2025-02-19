@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Sheet, Input, Button, List, ListItem, Typography, Grid } from '@mui/joy'
+import { Sheet, Input, Button, List, ListItem, Typography } from '@mui/joy'
 import SendIcon from '@mui/icons-material/Send'
 import { useModel } from '../../hooks/useModel'
 import { OllamaApi } from '../../API/ollamaAPI'
+import { aiAgentAPI } from '../../API/aiAgentAPI'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 // import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 import Markdown from 'react-markdown'
@@ -10,7 +11,7 @@ import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/
 import { useColorScheme } from '@mui/joy/styles'
 import './PromptInputInterface.css'
 import brain from '../../../../assets/artificial-intelligence.gif'
-import { searchDomain } from './aiAgent'
+
 // Environment="OLLAMA_MODELS=/usr/share/ollama/.ollama/models"
 // Environment="OLLAMA_ORIGINS=*"
 
@@ -23,14 +24,15 @@ interface Message {
 export const PromptInputInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const [messageHistory, setMessageHistory] = useState<Message[]>([])
-  const [agentMessage, setAgentMessages] = useState<Message[]>([])
+  const [agentMessages, setAgentMessages] = useState<Message[]>([])
   const [agentMessageHistory, setAgentMessageHistory] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [model, setModel]: any = useModel()
   const { mode, setMode } = useColorScheme()
   const [images, setImages] = useState<string[]>([])
+  const [domain, setDomain] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  setModel("llama3.1:8b")
+  setModel('llama3.1:8b')
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
@@ -78,49 +80,39 @@ export const PromptInputInterface: React.FC = () => {
     return elements.length > 0 ? elements : <Typography>{msg}</Typography>
   }
 
+  const searchDomain = async () => {
+    const searchDomainsRes = await aiAgentAPI.agent_websearch('', domain, input)
+    // console.log('searchDomainsRes', searchDomainsRes)
+    return searchDomainsRes
+  }
+
   const sendAgentMessage = async () => {
-    const renderedInput: any = await renderMessageContent(input)
+    const renderedInput = await renderMessageContent(input)
     console.log('Rendered Input: ', renderedInput)
 
-    let message: any = agentMessageHistory.concat({
+    let message = agentMessageHistory.concat({
       role: 'user',
       content: input
     })
-    // console.log('Message: ', message)
+
     if (input.trim()) {
       setAgentMessages((prevMessages) => [
         ...prevMessages,
-        {
-          role: 'user',
-          content: input
-        }
-      ])
-      setAgentMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          role: 'thinking',
-          content: <img src={brain} alt="brain" height="50" />
-        }
+        { role: 'user', content: input },
+        { role: 'thinking', content: <img src={brain} alt="brain" height="50" /> }
       ])
       setInput('')
-    }
-    if (input.trim()) {
-      setAgentMessageHistory((prevMessages) => [
-        ...prevMessages,
-        {
-          role: 'user',
-          content: input
-        }
-      ])
+      setAgentMessageHistory((prevMessages) => [...prevMessages, { role: 'user', content: input }])
     }
 
-    const searchData = await searchDomain('https://cips.cardano.org/')
+    const searchDataRaw = await searchDomain()
+    console.log('Raw searchData: ', searchDataRaw)
+    const searchData = typeof searchDataRaw === 'string' ? JSON.parse(searchDataRaw) : []
+    console.log('Processed searchData: ', searchData)
 
     const optionsAgentChat = {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: model,
         messages: message,
@@ -130,45 +122,73 @@ export const PromptInputInterface: React.FC = () => {
             type: 'function',
             function: {
               name: 'search',
-              description: 'Perform a web search',
+              description: 'Search scraped data from the domain',
               parameters: {
                 type: 'object',
-                properties: {
-                  query: { type: 'string', description: 'The search query' }
-                },
+                properties: { query: { type: 'string', description: 'The search query' } },
                 required: ['query']
               }
             }
           }
         ],
-        searchData: searchData
+        searchData: JSON.stringify(searchData)
       })
     }
 
     const response = await OllamaApi('chat', optionsAgentChat)
-    console.log('optionsAgentChat: ', response)
+    console.log('Initial Response: ', response)
 
-    /*
-    const renderedResponse: any = await renderMessageContent(response.message.content)
-    console.log('Rendered Input: ', renderedResponse)
+    let finalContent = ''
+
+    if (response.message.tool_calls && response.message.tool_calls.length > 0) {
+      const toolCall = response.message.tool_calls[0]
+      console.log('Tool Call Detected:', toolCall)
+      if (toolCall.function.name === 'search') {
+        const query = toolCall.function.arguments.query
+        console.log('Tool Call Query: ', query)
+
+        const formattedResult = JSON.stringify(searchData, null, 2)
+        console.log('Filtered Search Result: ', formattedResult)
+
+        const updatedMessages = message.concat([
+          { role: 'assistant', content: '', tool_calls: [toolCall] },
+          { role: 'tool', content: formattedResult, tool_call_id: toolCall.id || 'search_call' }
+        ])
+
+        const followUpOptions = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: model,
+            messages: updatedMessages,
+            stream: false
+          })
+        }
+
+        const finalResponse = await OllamaApi('chat', followUpOptions)
+        finalContent = finalResponse.message.content
+        console.log('Agent Final Response: ', finalContent)
+      }
+    } else {
+      finalContent =
+        response.message.content || 'Based on my knowledge, here’s an answer without tool data.'
+      console.log('No Tool Call, Agent Response: ', finalContent)
+    }
+
+    const renderedResponse = await renderMessageContent(finalContent)
+    console.log('Rendered Response: ', renderedResponse)
 
     setAgentMessages((prevMessages) => [
       ...prevMessages,
-      {
-        role: 'assistant',
-        content: renderedResponse
-      }
+      { role: 'assistant', content: renderedResponse }
     ])
 
     setAgentMessageHistory((prevMessages) => [
       ...prevMessages,
-      {
-        role: 'assistant',
-        content: response.message.content
-      }
+      { role: 'assistant', content: finalContent }
     ])
-    */
-    setAgentMessages((prevItems) => prevItems.filter((item) => item['role'] !== 'thinking'))
+
+    setAgentMessages((prevItems) => prevItems.filter((item) => item.role !== 'thinking'))
   }
 
   // Function to handle sending a message
@@ -300,6 +320,27 @@ export const PromptInputInterface: React.FC = () => {
                 </Sheet>
               </ListItem>
             ))}
+            {agentMessages.map((msg, index) => (
+              <ListItem
+                key={index}
+                sx={{
+                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start'
+                }}
+              >
+                <Sheet
+                  variant="soft"
+                  color={msg.role === 'user' ? 'primary' : 'neutral'}
+                  sx={{
+                    borderRadius: 'lg',
+                    p: 1,
+                    display: 'inline-block',
+                    color: mode === 'dark' ? 'text.primary' : 'text.secondary'
+                  }}
+                >
+                  <Typography>{msg.content}</Typography>
+                </Sheet>
+              </ListItem>
+            ))}
             <div ref={messagesEndRef} />
           </List>
         </Sheet>
@@ -349,6 +390,7 @@ export const PromptInputInterface: React.FC = () => {
               }
             }}
           />
+          <br />
           {/* <SelectOllamaModel /> */}
           <Button
             variant="outlined"
@@ -367,6 +409,68 @@ export const PromptInputInterface: React.FC = () => {
           >
             Send
           </Button>
+          <Button
+            variant="outlined"
+            color="primary"
+            endDecorator={<SendIcon />}
+            onClick={()=>setAgentMessages([])}
+            sx={{
+              ml: 1, // Assuming 1 spacing unit is equivalent to 8px, adjust as needed
+              mt: 1, // Add margin top for mobile view, same as ml for consistency
+              [`@media (min-width: 400px)`]: {
+                ml: 1, // Margin left for larger screens, keeping consistent with mobile
+                mt: 0 // No margin top needed for larger screens
+              },
+              maxHeight: '55px'
+            }}
+          >
+            Clear
+          </Button>
+        </Sheet>
+        <Sheet
+          sx={{
+            display: 'flex',
+            p: 2,
+            bgcolor: mode === 'dark' ? 'background.surface' : 'background.body',
+            borderTop: '1px solid',
+            borderColor: 'neutral.outlinedBorder',
+            flexDirection: 'column',
+            [`@media (min-width: 400px)`]: {
+              flexDirection: 'row'
+            }
+          }}
+        >
+          <Input
+            fullWidth
+            variant="outlined"
+            size="md"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            onKeyUp={(e) => {
+              if (e.key === 'Enter') {
+                if (e.shiftKey) {
+                  // Insert newline
+                  e.preventDefault()
+                  setDomain((prevInput) => prevInput + '\n')
+                } else {
+                  // Send message
+                  // sendMessage()
+                  setDomain((prevInput) => prevInput + '\n')
+                }
+              }
+            }}
+            placeholder="Domain URL"
+            sx={{
+              flexGrow: 1,
+              [`@media (max-width: 400px)`]: {
+                mb: 1
+              },
+              '& .MuiInput-input': {
+                wordWrap: 'break-word',
+                whiteSpace: 'pre-wrap'
+              }
+            }}
+          />
         </Sheet>
       </Sheet>
     </>

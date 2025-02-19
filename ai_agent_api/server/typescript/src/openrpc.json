@@ -8,8 +8,8 @@
   "methods": [
     {
       "name": "create_user",
-      "description" : "Registers a new User.",
-      "params" : [
+      "description": "Registers a new User.",
+      "params": [
         {
           "$ref": "#/components/contentDescriptors/JWT"
         }
@@ -24,8 +24,8 @@
     },
     {
       "name": "agent_websearch",
-      "description" : "Registers a new User.",
-      "params" : [
+      "description": "Registers a new User.",
+      "params": [
         {
           "$ref": "#/components/contentDescriptors/JWT"
         },

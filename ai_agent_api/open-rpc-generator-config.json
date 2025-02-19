@@ -4,12 +4,12 @@
     "components": [
         {
             "type": "client",
-            "name": "client",
+            "name": "ai_agent_client",
             "language": "typescript"
         },
         {
             "type": "server",
-            "name": "server",
+            "name": "ai_agent_server",
             "language": "typescript"
         }
     ]
