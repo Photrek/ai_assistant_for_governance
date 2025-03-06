@@ -21,9 +21,10 @@ export const SelectOllamaModel: React.FC = () => {
     }
     try {
       const data = await OllamaApi('tags', options)
+      console.log("get_model_list data: ", data)
       setModels(data)
     } catch (error) {
-      console.log('Error: ', error)
+      console.log('Error get_model_list: ', error)
     }
   }
 
@@ -33,7 +34,7 @@ export const SelectOllamaModel: React.FC = () => {
 
   return (
     <div>
-      <FormLabel>Select OLLAMA Model</FormLabel>
+      <FormLabel>Select Model</FormLabel>
       <Select
         value={selectedModel}
         onChange={handleChange}

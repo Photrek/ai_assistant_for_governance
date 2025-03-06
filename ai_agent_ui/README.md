@@ -13,10 +13,29 @@ Then just:
 
 1. git clone https://github.com/Photrek/ai_assistant_for_governance
 2. cd ai_assistant_for_governance
+3. cd ai_agent_ui
 3. npm install
-4. now you have two options to run this: `npm start` or `npm run electron-dev`. <br />
+4. now you have two options to run this: `npm start` or `npm run dev`. <br />
    The differnces is, one will run in a web browser window the other in a electron container.
 5. Once everything is runnig you should be able to see the app, select your Ollama Model and Specify a Ogmios instance.
+
+# How to run Ollama locally to work with the AI Agent
+These instructions might be slightly different on Windows systems.
+After installing Ollama, you will need to pull a model that can run on your system
+and that supports tooling.
+
+Two that stand out right away are:
+llama3.1:8b  4.9 GB - this model is the least system intensive and doesn't require a GPU. Minimum should be at least 32GB of ram and at least a a CPU that's about the same tech specs as a Intel I7-13xxx Gen.
+llama3.3:70b 42 GB  - this model is pretty system resource intensive and I recommend having at least 64GB of Ram and Robust CPU if you don't have a GPU.   
+
+After installing Ollama make you setup these two enviroment vars.  
+
+`export OLLAMA_MODELS="/usr/share/ollama/.ollama/models"` This is a little bit different on Mac and Windows
+`export OLLAMA_ORIGINS="*"`
+
+and then run Ollama with:
+
+`ollama serve`
 
 **Note**: If you need a cardano Ogmios/Node instance, I recomend https://demeter.run, their free tier allows for a single conneciton instance which is more than enough for the dapp.
 

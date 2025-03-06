@@ -12,7 +12,31 @@
       "params" : [
         {
           "$ref": "#/components/contentDescriptors/JWT"
+        },
+        {
+          "$ref": "#/components/contentDescriptors/username"
+        },
+        {
+          "$ref": "#/components/contentDescriptors/password"
         }
+      ],
+      "result": {
+        "name": "create_user_result",
+        "description": "Returns success or no.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },{
+      "name": "login_user",
+      "description" : "User login",
+      "params" : [
+        {
+          "$ref": "#/components/contentDescriptors/username"
+        },
+        {
+          "$ref": "#/components/contentDescriptors/password"
+        }        
       ],
       "result": {
         "name": "create_user_result",

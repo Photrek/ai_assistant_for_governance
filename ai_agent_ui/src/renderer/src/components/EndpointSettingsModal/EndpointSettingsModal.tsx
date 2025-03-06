@@ -46,7 +46,7 @@ export const EndpointSettingsModal: React.FC = () => {
               fullWidth
               variant="outlined"
               size="md"         
-              placeholder={"IP Address: " + (!aiEndpoint ? 'localhost' : JSON.parse(aiEndpoint)[0])}
+              placeholder={"IP Address: " + (!JSON.parse(aiEndpoint)[0] ? 'localhost' : JSON.parse(aiEndpoint)[0])}
               value={hostAddress ? hostAddress : 'localhost'}
               onChange={(e) => setHostAddress(e.target.value)}
             />
@@ -55,7 +55,7 @@ export const EndpointSettingsModal: React.FC = () => {
               fullWidth
               variant="outlined"
               size="md"  
-              placeholder={"Port Number: " + (!aiEndpoint ? '11434' : JSON.parse(aiEndpoint)[1])}
+              placeholder={"Port Number: " + (!JSON.parse(aiEndpoint)[1]  ? '11434' : JSON.parse(aiEndpoint)[1])}
               value={portNumber ? portNumber : '11434'}
               onChange={(e) => setPortNumber(e.target.value)}
             />
@@ -68,7 +68,7 @@ export const EndpointSettingsModal: React.FC = () => {
               variant="outlined"
               size="md"         
               placeholder="Ogmios"
-              value={ogmiosHook ? ogmiosHook : "https://ogmismain.onchainapps.io"}
+              value={ogmiosHook ? ogmiosHook : "https://ogmiosmain.onchainapps.io"}
               onChange={(e) => setOgmiosHook(e.target.value)}
             />
           </Sheet>

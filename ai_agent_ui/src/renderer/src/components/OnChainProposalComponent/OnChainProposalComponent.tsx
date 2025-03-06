@@ -8,9 +8,10 @@ import Markdown from 'react-markdown';
 import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { BlockMath, InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
+import { proposalsHook } from '../../hooks/proposalsHook';
 
 export const OnChainProposalComponent: React.FC = () => {
-  const [proposals, setProposals] = useState<any[]>([]);
+  const [ proposals, setProposals ] = proposalsHook<any[]>();
   const { mode, setMode } = useColorScheme();
 
   console.log('mode', mode);
@@ -274,7 +275,7 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
 
       <Sheet sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
         <List>
-          {proposals.map((proposal, index) => (
+          {proposals && proposals.map((proposal, index) => (
             <React.Fragment key={index}>
               <ListItem sx={{ padding: '0', flexDirection: 'column', alignItems: 'flex-start' }}>
                 <Card variant="outlined" sx={{ width: '100%', mb: 2, p: 2, borderRadius: 'lg' }}>

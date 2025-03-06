@@ -1,70 +1,61 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Sheet, Input, Button, List, ListItem, Typography } from '@mui/joy'
 import SendIcon from '@mui/icons-material/Send'
+import ClearIcon from '@mui/icons-material/Clear'
 import { useModel } from '../../hooks/useModel'
-import { OllamaApi } from '../../API/ollamaAPI'
-import { aiAgentAPI } from '../../API/aiAgentAPI'
+import ollama from 'ollama/browser'
+import { Ollama } from 'ollama'
+import { useAIEndpoint } from '../../hooks/useEndpointHook'
+import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-// import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 import Markdown from 'react-markdown'
 import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useColorScheme } from '@mui/joy/styles'
 import './PromptInputInterface.css'
 import brain from '../../../../assets/artificial-intelligence.gif'
+import { proposalsHook } from '../../hooks/proposalsHook'
 
-// Environment="OLLAMA_MODELS=/usr/share/ollama/.ollama/models"
-// Environment="OLLAMA_ORIGINS=*"
-
-// Define the type for a message
 interface Message {
   role: 'user' | 'assistant' | 'thinking'
   content: string | React.ReactNode
 }
 
 export const PromptInputInterface: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [messageHistory, setMessageHistory] = useState<Message[]>([])
-  const [agentMessages, setAgentMessages] = useState<Message[]>([])
-  const [agentMessageHistory, setAgentMessageHistory] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [model, setModel]: any = useModel()
-  const { mode, setMode } = useColorScheme()
-  const [images, setImages] = useState<string[]>([])
-  const [domain, setDomain] = useState('')
+  const [ messages, setMessages ] = useState<Message[]>([])
+  const [ messageHistory, setMessageHistory ] = useState<Message[]>([])
+  const [ input, setInput ] = useState('')
+  const [ model, setModel ]: any = useModel()
+  const [ images, setImages ] = useState<string[]>([])
+  const [ domain, setDomain ] = useState('')
+  const [ aiEndpoint, setAIendpoint ]: any = useAIEndpoint()
+  const [ proposals, setProposals ]: any = proposalsHook()
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  setModel('llama3.1:8b')
+  const { mode, setMode } = useColorScheme()
+
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }
 
-  const renderMessageContent = async (msg: any) => {
-    if (typeof msg !== 'string') return msg // If it's not a string, return as is
-
-    // Split by code blocks to separate code from descriptions
+  const renderMessageContent = async (msg: string): Promise<React.ReactNode> => {
+    if (typeof msg !== 'string') return msg
     const parts = msg.split(/```(\w+)?([\s\S]*?)```/)
     const elements: React.ReactNode[] = []
-
     for (let i = 0; i < parts.length; i++) {
-      // i % 3 == 0: Text before code block or between code blocks
       if (i % 3 === 0 && parts[i].trim()) {
         elements.push(
           <Typography key={`desc-${i}`}>
             <Markdown>{parts[i].trim()}</Markdown>
           </Typography>
         )
-      }
-      // i % 3 == 1: Language, not used in rendering but could be for other purposes
-      else if (i % 3 === 1) {
+      } else if (i % 3 === 1) {
         const language = parts[i] || 'text'
         const code = parts[i + 1]?.trim() || ''
         if (code) {
-          // console.log('language: ', language)
           elements.push(
             <Sheet key={`code-${i}`} variant="outlined" sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
-              <hr />
-              <Typography>AI code block:</Typography>
+              <Typography>Code block:</Typography>
               <SyntaxHighlighter
                 language={language}
                 style={mode === 'dark' ? oneDark : duotoneLight}
@@ -74,191 +65,175 @@ export const PromptInputInterface: React.FC = () => {
             </Sheet>
           )
         }
-        i++ // Skip to the next part since we've just processed the code
+        i++
       }
     }
-    return elements.length > 0 ? elements : <Typography>{msg}</Typography>
+    return elements.length > 0 ? (
+      elements
+    ) : (
+      <Typography>
+        <Markdown>{msg}</Markdown>
+      </Typography>
+    )
   }
 
-  const searchDomain = async () => {
-    const searchDomainsRes = await aiAgentAPI.agent_websearch('', domain, input)
-    // console.log('searchDomainsRes', searchDomainsRes)
-    return searchDomainsRes
+  const availableTools = {
+    list_proposals: {
+      description: 'Lists all available proposals with details in Markdown format',
+      execute: () => {
+        if (!proposals || proposals.length === 0) {
+          return 'No proposals available'
+        }
+        const proposalList = proposals
+          .map((item: any, i: number) => {
+            const p = item.proposal
+            const meta = item.metadata?.body || {}
+
+            // Calculate vote summary
+            const voteSummary = p.votes.reduce((acc: any, vote: any) => {
+              acc[vote.vote] = (acc[vote.vote] || 0) + 1
+              return acc
+            }, {})
+
+            return `
+              ### ${i + 1}. ${meta.title || 'Untitled'}  
+              **ID:** \`${p.proposal.transaction.id}\`  
+              **Type:** ${p.action.type}  
+              **Deposit:** ${(p.deposit.ada.lovelace / 1000000).toLocaleString()} ADA  
+              **Active Period:** Epoch ${p.since.epoch} to ${p.until.epoch}  
+              **Metadata URL:** [${p.metadata.url}](${p.metadata.url})  
+              **Votes:**  
+              - Yes: ${voteSummary.yes || 0}  
+              - No: ${voteSummary.no || 0}  
+              - Abstain: ${voteSummary.abstain || 0}  
+              **Description:** ${meta.abstract || 'No description available'}
+            `
+            })
+            .join('\n\n')
+          return proposalList || 'No proposals found'
+      }
+    },
+    web_search: {
+      description: 'Searches the web for information',
+      execute: (query: string) => `
+        **Web Search:**  
+        Searching web for: *${query}*  
+        *(Note: Full implementation would require API integration)*
+        `
+    }
   }
 
-  const sendAgentMessage = async () => {
-    const renderedInput = await renderMessageContent(input)
-    console.log('Rendered Input: ', renderedInput)
+  const agentProcess = async (userInput: string): Promise<string> => {
+    const lowercaseInput = userInput.toLowerCase().trim()
 
-    let message = agentMessageHistory.concat({
-      role: 'user',
-      content: input
+    // Tool detection and execution
+    if (lowercaseInput.includes('list') && lowercaseInput.includes('proposal')) {
+      return availableTools['list_proposals'].execute()
+    }
+    if (lowercaseInput.includes('search') || lowercaseInput.includes('find')) {
+      return availableTools['web_search'].execute(userInput)
+    }
+
+    // Default LLM processing with context
+    const ollama = new Ollama({ host: 'http://127.0.0.1:11434' })
+    const systemPrompt = `
+You are an AI agent assisting with Cardano governance proposals. You have access to proposal data and can provide detailed information when asked. For general questions, respond conversationally. Format your responses in Markdown for readability.
+
+Available tools:
+- **list_proposals**: Lists all proposals with details
+- **web_search**: Simulates a web search (placeholder)
+
+Current proposal data is available but will be provided by tools when needed. Respond to the user's input directly.
+    `
+
+    const response = await ollama.chat({
+      model: model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messageHistory,
+        { role: 'user', content: userInput }
+      ],
+      stream: false // We'll handle streaming in sendMessage
     })
 
-    if (input.trim()) {
-      setAgentMessages((prevMessages) => [
-        ...prevMessages,
-        { role: 'user', content: input },
-        { role: 'thinking', content: <img src={brain} alt="brain" height="50" /> }
-      ])
-      setInput('')
-      setAgentMessageHistory((prevMessages) => [...prevMessages, { role: 'user', content: input }])
-    }
+    return response.message.content
+  }
 
-    const searchDataRaw = await searchDomain()
-    console.log('Raw searchData: ', searchDataRaw)
-    const searchData = typeof searchDataRaw === 'string' ? JSON.parse(searchDataRaw) : []
-    console.log('Processed searchData: ', searchData)
+  const sendMessage = async () => {
+    if (!input.trim()) return
 
-    const optionsAgentChat = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model,
-        messages: message,
-        stream: false,
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'search',
-              description: 'Search scraped data from the domain',
-              parameters: {
-                type: 'object',
-                properties: { query: { type: 'string', description: 'The search query' } },
-                required: ['query']
-              }
-            }
-          }
-        ],
-        searchData: JSON.stringify(searchData)
-      })
-    }
+    const userMessage = { role: 'user', content: input }
+    setMessages((prev) => [...prev, userMessage])
+    setMessageHistory((prev) => [...prev, userMessage])
+    setInput('')
 
-    const response = await OllamaApi('chat', optionsAgentChat)
-    console.log('Initial Response: ', response)
+    setMessages((prev) => [
+      ...prev,
+      { role: 'thinking', content: <img src={brain} alt="brain" height="50" /> }
+    ])
 
-    let finalContent = ''
+    try {
+      const isToolRequest =
+        (input.toLowerCase().includes('list') && input.toLowerCase().includes('proposal')) ||
+        input.toLowerCase().includes('search') ||
+        input.toLowerCase().includes('find')
 
-    if (response.message.tool_calls && response.message.tool_calls.length > 0) {
-      const toolCall = response.message.tool_calls[0]
-      console.log('Tool Call Detected:', toolCall)
-      if (toolCall.function.name === 'search') {
-        const query = toolCall.function.arguments.query
-        console.log('Tool Call Query: ', query)
-
-        const formattedResult = JSON.stringify(searchData, null, 2)
-        console.log('Filtered Search Result: ', formattedResult)
-
-        const updatedMessages = message.concat([
-          { role: 'assistant', content: '', tool_calls: [toolCall] },
-          { role: 'tool', content: formattedResult, tool_call_id: toolCall.id || 'search_call' }
+      if (isToolRequest) {
+        const toolResult = await agentProcess(input)
+        const renderedContent = await renderMessageContent(toolResult)
+        setMessages((prev) => [
+          ...prev.filter((item) => item.role !== 'thinking'),
+          { role: 'assistant', content: renderedContent }
         ])
+        setMessageHistory((prev) => [...prev, { role: 'assistant', content: toolResult }])
+      } else {
+        const ollama = new Ollama({ host: 'http://127.0.0.1:11434' })
+        const response = await ollama.chat({
+          model: model,
+          messages: [
+            {
+              role: 'system',
+              content: `
+You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown. Use the conversation history and respond to the user's input directly.
+            `
+            },
+            ...messageHistory,
+            { role: 'user', content: input }
+          ],
+          stream: true
+        })
 
-        const followUpOptions = {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: model,
-            messages: updatedMessages,
-            stream: false
+        let accumulatedResponse = ''
+        setMessages((prev) => prev.filter((item) => item.role !== 'thinking'))
+
+        for await (const part of response) {
+          accumulatedResponse += part.message.content
+          const renderedContent = await renderMessageContent(accumulatedResponse)
+
+          setMessages((prev) => {
+            const withoutThinking = prev.filter((item) => item.role !== 'thinking')
+            const lastWasAssistant =
+              withoutThinking[withoutThinking.length - 1]?.role === 'assistant'
+
+            if (lastWasAssistant) {
+              return [
+                ...withoutThinking.slice(0, -1),
+                { role: 'assistant', content: renderedContent }
+              ]
+            }
+            return [...withoutThinking, { role: 'assistant', content: renderedContent }]
           })
         }
 
-        const finalResponse = await OllamaApi('chat', followUpOptions)
-        finalContent = finalResponse.message.content
-        console.log('Agent Final Response: ', finalContent)
+        setMessageHistory((prev) => [...prev, { role: 'assistant', content: accumulatedResponse }])
       }
-    } else {
-      finalContent =
-        response.message.content || 'Based on my knowledge, here’s an answer without tool data.'
-      console.log('No Tool Call, Agent Response: ', finalContent)
-    }
-
-    const renderedResponse = await renderMessageContent(finalContent)
-    console.log('Rendered Response: ', renderedResponse)
-
-    setAgentMessages((prevMessages) => [
-      ...prevMessages,
-      { role: 'assistant', content: renderedResponse }
-    ])
-
-    setAgentMessageHistory((prevMessages) => [
-      ...prevMessages,
-      { role: 'assistant', content: finalContent }
-    ])
-
-    setAgentMessages((prevItems) => prevItems.filter((item) => item.role !== 'thinking'))
-  }
-
-  // Function to handle sending a message
-  const sendMessage = async () => {
-    const renderedInput: any = await renderMessageContent(input)
-    let message: any = messageHistory.concat({
-      role: 'user',
-      content: renderedInput
-    })
-    // console.log('Message: ', message)
-    if (renderedInput.trim()) {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          role: 'user',
-          content: renderedInput
-        }
-      ])
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          role: 'thinking',
-          content: <img src={brain} alt="brain" height="50" />
-        }
-      ])
-      setInput('')
-    }
-    if (renderedInput.trim()) {
-      setMessageHistory((prevMessages) => [
-        ...prevMessages,
-        {
-          role: 'user',
-          content: renderedInput
-        }
+    } catch (error) {
+      console.error('Error in sendMessage:', error)
+      setMessages((prev) => [
+        ...prev.filter((item) => item.role !== 'thinking'),
+        { role: 'assistant', content: 'Error occurred while processing your request' }
       ])
     }
-
-    const optionsChat = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: message,
-        stream: false
-      })
-    }
-
-    const response = await OllamaApi('chat', optionsChat)
-    // console.log('Response: ', response)
-    const renderedResponse: any = await renderMessageContent(response.message.content)
-    // console.log('Rendered Input: ', renderedResponse)
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        role: 'assistant',
-        content: renderedResponse
-      }
-    ])
-
-    setMessageHistory((prevMessages) => [
-      ...prevMessages,
-      {
-        role: 'assistant',
-        content: response.message.content
-      }
-    ])
-
-    setMessages((prevItems) => prevItems.filter((item) => item['role'] !== 'thinking'))
   }
 
   useEffect(() => {
@@ -270,8 +245,6 @@ export const PromptInputInterface: React.FC = () => {
       <Sheet
         sx={{
           mt: 20,
-          // Remove minWidth to allow resizing
-          // minWidth: '1000px',
           display: 'flex',
           flexDirection: 'column',
           width: '100%',
@@ -285,7 +258,6 @@ export const PromptInputInterface: React.FC = () => {
           }
         }}
       >
-        {/* Chat Display */}
         <Sheet
           sx={{
             flexGrow: 1,
@@ -320,32 +292,10 @@ export const PromptInputInterface: React.FC = () => {
                 </Sheet>
               </ListItem>
             ))}
-            {agentMessages.map((msg, index) => (
-              <ListItem
-                key={index}
-                sx={{
-                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start'
-                }}
-              >
-                <Sheet
-                  variant="soft"
-                  color={msg.role === 'user' ? 'primary' : 'neutral'}
-                  sx={{
-                    borderRadius: 'lg',
-                    p: 1,
-                    display: 'inline-block',
-                    color: mode === 'dark' ? 'text.primary' : 'text.secondary'
-                  }}
-                >
-                  <Typography>{msg.content}</Typography>
-                </Sheet>
-              </ListItem>
-            ))}
             <div ref={messagesEndRef} />
           </List>
         </Sheet>
 
-        {/* Input Area */}
         <Sheet
           sx={{
             display: 'flex',
@@ -368,13 +318,10 @@ export const PromptInputInterface: React.FC = () => {
             onKeyUp={(e) => {
               if (e.key === 'Enter') {
                 if (e.shiftKey) {
-                  // Insert newline
                   e.preventDefault()
                   setInput((prevInput) => prevInput + '\n')
                 } else {
-                  // Send message
-                  // sendMessage()
-                  sendAgentMessage()
+                  sendMessage()
                 }
               }
             }}
@@ -391,18 +338,18 @@ export const PromptInputInterface: React.FC = () => {
             }}
           />
           <br />
-          {/* <SelectOllamaModel /> */}
+          <SelectOllamaModel />
           <Button
             variant="outlined"
             color="primary"
             endDecorator={<SendIcon />}
-            onClick={sendAgentMessage}
+            onClick={sendMessage}
             sx={{
-              ml: 1, // Assuming 1 spacing unit is equivalent to 8px, adjust as needed
-              mt: 1, // Add margin top for mobile view, same as ml for consistency
+              ml: 1,
+              mt: 1,
               [`@media (min-width: 400px)`]: {
-                ml: 1, // Margin left for larger screens, keeping consistent with mobile
-                mt: 0 // No margin top needed for larger screens
+                ml: 1,
+                mt: 0
               },
               maxHeight: '55px'
             }}
@@ -412,14 +359,14 @@ export const PromptInputInterface: React.FC = () => {
           <Button
             variant="outlined"
             color="primary"
-            endDecorator={<SendIcon />}
-            onClick={()=>setAgentMessages([])}
+            endDecorator={<ClearIcon />}
+            onClick={() => setMessages([])}
             sx={{
-              ml: 1, // Assuming 1 spacing unit is equivalent to 8px, adjust as needed
-              mt: 1, // Add margin top for mobile view, same as ml for consistency
+              ml: 1,
+              mt: 1,
               [`@media (min-width: 400px)`]: {
-                ml: 1, // Margin left for larger screens, keeping consistent with mobile
-                mt: 0 // No margin top needed for larger screens
+                ml: 1,
+                mt: 0
               },
               maxHeight: '55px'
             }}
@@ -449,12 +396,9 @@ export const PromptInputInterface: React.FC = () => {
             onKeyUp={(e) => {
               if (e.key === 'Enter') {
                 if (e.shiftKey) {
-                  // Insert newline
                   e.preventDefault()
                   setDomain((prevInput) => prevInput + '\n')
                 } else {
-                  // Send message
-                  // sendMessage()
                   setDomain((prevInput) => prevInput + '\n')
                 }
               }
