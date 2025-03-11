@@ -3,7 +3,6 @@ import { Sheet, Input, Button, List, ListItem, Typography } from '@mui/joy'
 import SendIcon from '@mui/icons-material/Send'
 import ClearIcon from '@mui/icons-material/Clear'
 import { useModel } from '../../hooks/useModel'
-import ollama from 'ollama/browser'
 import { Ollama } from 'ollama'
 import { useAIEndpoint } from '../../hooks/useEndpointHook'
 import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
@@ -136,15 +135,14 @@ export const PromptInputInterface: React.FC = () => {
 
     // Default LLM processing with context
     const ollama = new Ollama({ host: 'http://127.0.0.1:11434' })
-    const systemPrompt = `
-You are an AI agent assisting with Cardano governance proposals. You have access to proposal data and can provide detailed information when asked. For general questions, respond conversationally. Format your responses in Markdown for readability.
+    const systemPrompt = `You are an AI agent assisting with Cardano governance proposals. You have access to proposal data and can provide detailed information when asked. For general questions, respond conversationally. Format your responses in Markdown for readability.
 
-Available tools:
-- **list_proposals**: Lists all proposals with details
-- **web_search**: Simulates a web search (placeholder)
+                          Available tools:
+                          - **list_proposals**: Lists all proposals with details
+                          - **web_search**: Simulates a web search (placeholder)
 
-Current proposal data is available but will be provided by tools when needed. Respond to the user's input directly.
-    `
+                          Current proposal data is available but will be provided by tools when needed. Respond to the user's input directly.
+                          `
 
     const response = await ollama.chat({
       model: model,
@@ -163,8 +161,12 @@ Current proposal data is available but will be provided by tools when needed. Re
     if (!input.trim()) return
 
     const userMessage = { role: 'user', content: input }
-    setMessages((prev) => [...prev, userMessage])
-    setMessageHistory((prev) => [...prev, userMessage])
+    setMessages(
+      (prev) => [...prev, userMessage]
+    )
+    setMessageHistory(
+      (prev) => [...prev, userMessage]
+    )
     setInput('')
 
     setMessages((prev) => [
@@ -174,7 +176,9 @@ Current proposal data is available but will be provided by tools when needed. Re
 
     try {
       const isToolRequest =
-        (input.toLowerCase().includes('list') && input.toLowerCase().includes('proposal')) ||
+        (
+          input.toLowerCase().includes('list') && input.toLowerCase().includes('proposal')
+        ) ||
         input.toLowerCase().includes('search') ||
         input.toLowerCase().includes('find')
 
@@ -185,7 +189,9 @@ Current proposal data is available but will be provided by tools when needed. Re
           ...prev.filter((item) => item.role !== 'thinking'),
           { role: 'assistant', content: renderedContent }
         ])
-        setMessageHistory((prev) => [...prev, { role: 'assistant', content: toolResult }])
+        setMessageHistory(
+          (prev) => [...prev, { role: 'assistant', content: toolResult }]
+        )
       } else {
         const ollama = new Ollama({ host: 'http://127.0.0.1:11434' })
         const response = await ollama.chat({
@@ -194,7 +200,7 @@ Current proposal data is available but will be provided by tools when needed. Re
             {
               role: 'system',
               content: `
-You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown. Use the conversation history and respond to the user's input directly.
+              You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown. Use the conversation history and respond to the user's input directly.
             `
             },
             ...messageHistory,
