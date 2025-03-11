@@ -3,7 +3,7 @@ import { Sheet, Input, Button, List, ListItem, Typography } from '@mui/joy'
 import SendIcon from '@mui/icons-material/Send'
 import ClearIcon from '@mui/icons-material/Clear'
 import { useModel } from '../../hooks/useModel'
-import { Ollama } from 'ollama'
+import Ollama from 'ollama/browser';
 import { useAIEndpoint } from '../../hooks/useEndpointHook'
 import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
