@@ -134,7 +134,7 @@ export const PromptInputInterface: React.FC = () => {
     }
 
     // Default LLM processing with context
-    const ollama = new Ollama({ host: 'http://127.0.0.1:11434' })
+    const ollama = new Ollama({ host: 'https://ollama.photrek.io:11434' })
     const systemPrompt = `You are an AI agent assisting with Cardano governance proposals. You have access to proposal data and can provide detailed information when asked. For general questions, respond conversationally. Format your responses in Markdown for readability.
 
                           Available tools:
