@@ -1,11 +1,13 @@
 import React from 'react'
 import { FormLabel, Select, Option, SelectChangeEvent } from '@mui/joy'
 import { useModel } from '../../hooks/useModel'
-import { OllamaApi } from '../../API/ollamaAPI'
+import { Ollama } from 'ollama/browser';
+import { useAIEndpoint } from '../../hooks/useEndpointHook';
 
 export const SelectOllamaModel: React.FC = () => {
   const [models, setModels] = React.useState<any>()
   const [selectedModel, setSelectedModel]: any = useModel()
+  const [aiEndpoint, setAIendpoint]: any = useAIEndpoint();
 
   const handleChange = (event: SelectChangeEvent<string>, newValue: string) => {
     // Joy UI's Select component uses `onChange` with two parameters
@@ -13,16 +15,11 @@ export const SelectOllamaModel: React.FC = () => {
   }
 
   const get_model_list = async () => {
-    const options = {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }
     try {
-      const data = await OllamaApi('tags', options)
-      console.log("get_model_list data: ", data)
-      setModels(data)
+     const ollama = new Ollama({ host: 'http://199.94.61.196:11434' })
+      const response = await ollama.list()
+      console.log("get_model_list data: ", response)
+      setModels(response)
     } catch (error) {
       console.log('Error get_model_list: ', error)
     }
@@ -30,7 +27,7 @@ export const SelectOllamaModel: React.FC = () => {
 
   React.useEffect(() => {
     get_model_list()
-  }, [])
+  }, [aiEndpoint])
 
   return (
     <div>

@@ -32,6 +32,12 @@ export const EndpointSettingsModal: React.FC = () => {
     handleClose(); // Close the modal after saving
   };
 
+  React.useEffect(() => {
+    !aiEndpoint ? setHostAddress('localhost') :  setHostAddress(JSON.parse(aiEndpoint)[0])
+    !aiEndpoint ? setPortNumber('11434') :  setPortNumber(JSON.parse(aiEndpoint)[1])
+
+  }, [aiEndpoint, ogmiosHook]);
+
   return (
     <div>
       <Button onClick={handleOpen} startDecorator={<SettingsIcon />}>Settings</Button>
@@ -46,7 +52,7 @@ export const EndpointSettingsModal: React.FC = () => {
               fullWidth
               variant="outlined"
               size="md"         
-              placeholder={"IP Address: " + (!JSON.parse(aiEndpoint)[0] ? 'localhost' : JSON.parse(aiEndpoint)[0])}
+              placeholder={"IP Address: " + (!aiEndpoint ? 'localhost' : JSON.parse(aiEndpoint)[0])}
               value={hostAddress ? hostAddress : 'localhost'}
               onChange={(e) => setHostAddress(e.target.value)}
             />
@@ -55,7 +61,7 @@ export const EndpointSettingsModal: React.FC = () => {
               fullWidth
               variant="outlined"
               size="md"  
-              placeholder={"Port Number: " + (!JSON.parse(aiEndpoint)[1]  ? '11434' : JSON.parse(aiEndpoint)[1])}
+              placeholder={"Port Number: " + (!aiEndpoint ? '11434' : JSON.parse(aiEndpoint)[1])}
               value={portNumber ? portNumber : '11434'}
               onChange={(e) => setPortNumber(e.target.value)}
             />
