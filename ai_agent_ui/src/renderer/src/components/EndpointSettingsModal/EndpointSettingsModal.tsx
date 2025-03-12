@@ -33,7 +33,7 @@ export const EndpointSettingsModal: React.FC = () => {
   };
 
   React.useEffect(() => {
-    !aiEndpoint ? setHostAddress('localhost') :  setHostAddress(JSON.parse(aiEndpoint)[0])
+    !aiEndpoint ? setHostAddress('http://ollama.photrek.io') :  setHostAddress(JSON.parse(aiEndpoint)[0])
     !aiEndpoint ? setPortNumber('11434') :  setPortNumber(JSON.parse(aiEndpoint)[1])
 
   }, [aiEndpoint, ogmiosHook]);

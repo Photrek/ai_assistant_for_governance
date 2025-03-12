@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Sheet, Input, Button, List, ListItem, Typography } from '@mui/joy'
+import { Sheet, Input, Button, List, ListItem, Typography, Divider } from '@mui/joy'
 import SendIcon from '@mui/icons-material/Send'
 import ClearIcon from '@mui/icons-material/Clear'
 import { useModel } from '../../hooks/useModel'
@@ -8,11 +8,14 @@ import { useAIEndpoint } from '../../hooks/useEndpointHook'
 import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import Markdown from 'react-markdown'
+import { BlockMath, InlineMath } from 'react-katex';
+import 'katex/dist/katex.min.css';
 import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useColorScheme } from '@mui/joy/styles'
 import './PromptInputInterface.css'
 import brain from '../../../../assets/artificial-intelligence.gif'
 import { proposalsHook } from '../../hooks/proposalsHook'
+import { wsp } from '../../API/ogmiosApi';
 
 interface Message {
   role: 'user' | 'assistant' | 'thinking'
@@ -36,69 +39,179 @@ export const PromptInputInterface: React.FC = () => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }
-
-  const renderMessageContent = async (msg: string): Promise<React.ReactNode> => {
-    if (typeof msg !== 'string') return msg
-    const parts = msg.split(/```(\w+)?([\s\S]*?)```/)
-    const elements: React.ReactNode[] = []
-    for (let i = 0; i < parts.length; i++) {
-      if (i % 3 === 0 && parts[i].trim()) {
-        elements.push(
-          <Typography key={`desc-${i}`}>
-            <Markdown>{parts[i].trim()}</Markdown>
-          </Typography>
-        )
-      } else if (i % 3 === 1) {
-        const language = parts[i] || 'text'
-        const code = parts[i + 1]?.trim() || ''
-        if (code) {
-          elements.push(
-            <Sheet key={`code-${i}`} variant="outlined" sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
-              <Typography>Code block:</Typography>
-              <SyntaxHighlighter
-                language={language}
-                style={mode === 'dark' ? oneDark : duotoneLight}
-              >
-                {code}
-              </SyntaxHighlighter>
-            </Sheet>
-          )
+  
+  const getProposal = async () => {
+    const method: string = 'queryLedgerState/governanceProposals';
+    const params = {
+      params: {
+        proposals: []
+      }
+    };
+  
+    let wspRes = await wsp(method, params);
+    return new Promise((resolve, reject) => {
+      wspRes.onmessage = async (e: any) => {
+        try {
+          const results = JSON.parse(e.data);
+          const parsedProposals = await parseResults(results.result);
+          resolve(parsedProposals);
+        } catch (error) {
+          reject(error);
         }
-        i++
+      };
+    });
+  };
+
+  const parseResults = async (results: any[]): Promise<Array<{ proposal: any, metadata: any }>> => {
+    console.log('results', results);
+    try {
+      const parsedProposals = await Promise.all(
+        results.map(async (proposal: any) => {
+          const metadataUri = proposal.metadata.url;
+          const metadata: any = await loadJsonMetadata(metadataUri);
+          const propInfo: any = { proposal, metadata };
+          console.log('propInfo', propInfo);
+          return propInfo;
+        })
+      );
+      return parsedProposals;
+    } catch (error) {
+      console.log('Error parsing results:', error);
+      return [];
+    }
+  };
+
+  const preprocessMath = (text: string): string => {
+    return text
+      .replace(/times/g, '\\cdot')
+      .replace(/frac/g, '\\frac')
+      .replace(/\\(.)/g, '$1'); // Unescapes backslashes if needed
+  };
+
+  const loadJsonMetadata = async (metadataUri: string) => {
+    let uri = metadataUri.startsWith('ipfs://') 
+      ? `https://ipfs.onchainapps.io/ipfs/${metadataUri.slice(7)}` 
+      : metadataUri;
+  
+    try {
+      const response = await fetch(uri);
+      if (!response.ok) {
+        console.warn('Failed to fetch metadata:', response.statusText);
+        return null;
+      }
+      const jsonData = await response.json();
+      if (jsonData.body) {
+        for (const key in jsonData.body) {
+          if (typeof jsonData.body[key] === 'string') {
+            jsonData.body[key] = preprocessMath(jsonData.body[key]);
+          }
+        }
+      }
+      console.log('Metadata fetched:', jsonData);
+      return jsonData;
+    } catch (error) {
+      console.error('Error loading metadata:', error);
+      return null;
+    }
+  };
+
+  function renderMessageContent(msg: string | undefined): React.ReactNode {
+    if (typeof msg !== 'string') {
+      console.warn('Expected msg to be a string, received:', typeof msg);
+      return msg as React.ReactNode; // Type assertion since we can't return 'msg' directly as ReactNode
+    }
+  
+    const parts = msg.split(/(```(\w+)?([\s\S]*?)```|\$\$[\s\S]*?\$\$|(?<!\\)\$(?:(?!\\).)*\$(?<!\\))/);
+  
+    const elements: React.ReactNode[] = [];
+  
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+  
+      if (part && typeof part === 'string') { 
+        if (part.startsWith('```')) { // Code block
+          const language = parts[i + 1] || 'text';
+          const code = parts[i + 2]?.trim() || '';
+          if (code) {
+            console.log('language: ', language);
+            elements.push(
+              <Sheet key={`code-${i}`} variant="outlined" sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
+                <Divider />
+                <Typography level="body-sm" sx={{ fontWeight: 'bold' }}>AI code block:</Typography>
+                <SyntaxHighlighter
+                  key={`code-block-${i}`}
+                  language={language}
+                  style={mode === 'dark' ? oneDark : duotoneLight}
+                >
+                  {code}
+                </SyntaxHighlighter>
+              </Sheet>
+            );
+            i += 2;
+          }
+        } else if (part.startsWith('$$') && part.endsWith('$$')) { // Block Math
+          const math = part.slice(2, -2).trim();
+          elements.push(
+            <Typography key={`math-${i}`} level="body-md">
+              <BlockMath>{math}</BlockMath>
+            </Typography>
+          );
+        } else {  // Regular text or inline math
+          const inlineMathRegex = /\$(.*?)\$/g;
+          let match: RegExpExecArray | null;
+          let lastIndex = 0;
+          const segments: string[] = [];
+          
+          while ((match = inlineMathRegex.exec(part))) {
+            if (match.index > lastIndex) {
+              segments.push(part.slice(lastIndex, match.index));
+            }
+            segments.push(match[0]);
+            lastIndex = inlineMathRegex.lastIndex;
+          }
+          if (lastIndex < part.length) {
+            segments.push(part.slice(lastIndex));
+          }
+  
+          const renderedSegments = segments.map((segment, idx) => {
+            if (segment.startsWith('$') && segment.endsWith('$')) {
+              return <InlineMath key={`inline-math-${idx}`}>{segment.slice(1, -1)}</InlineMath>;
+            }
+            return <Markdown key={`text-${idx}`}>{segment}</Markdown>;
+          });
+  
+          elements.push(
+            <Typography key={`desc-${i}`} level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
+              {renderedSegments}
+            </Typography>
+          );
+        }
       }
     }
-    return elements.length > 0 ? (
-      elements
-    ) : (
-      <Typography>
-        <Markdown>{msg}</Markdown>
-      </Typography>
-    )
-  }
+  
+    return elements.length > 0 ? elements : <Typography level="body-md">{msg}</Typography>;
+  };
 
   const availableTools = {
     list_proposals: {
       description: 'Lists all available proposals with details in Markdown format',
-      execute: () => {
-        if (!proposals || proposals.length === 0) {
+      execute: (proposalData: any[]) => {
+        if (!proposalData || proposalData.length === 0) {
           return 'No proposals available'
         }
-        const proposalList = proposals
+        const proposalList = proposalData
           .map((item: any, i: number) => {
             const p = item.proposal
             const meta = item.metadata?.body || {}
-
-            // Calculate vote summary
             const voteSummary = p.votes.reduce((acc: any, vote: any) => {
               acc[vote.vote] = (acc[vote.vote] || 0) + 1
               return acc
             }, {})
-
             return `
               ### ${i + 1}. ${meta.title || 'Untitled'}  
               **ID:** \`${p.proposal.transaction.id}\`  
               **Type:** ${p.action.type}  
-              **Deposit:** ${(p.deposit.ada.lovelace / 1000000).toLocaleString()} ADA  
+              **Deposit:** ${ (p.deposit.ada.lovelace / 1000000).toLocaleString() } ADA  
               **Active Period:** Epoch ${p.since.epoch} to ${p.until.epoch}  
               **Metadata URL:** [${p.metadata.url}](${p.metadata.url})  
               **Votes:**  
@@ -107,9 +220,9 @@ export const PromptInputInterface: React.FC = () => {
               - Abstain: ${voteSummary.abstain || 0}  
               **Description:** ${meta.abstract || 'No description available'}
             `
-            })
-            .join('\n\n')
-          return proposalList || 'No proposals found'
+          })
+          .join('\n\n')
+        return proposalList || 'No proposals found'
       }
     },
     web_search: {
@@ -124,26 +237,30 @@ export const PromptInputInterface: React.FC = () => {
 
   const agentProcess = async (userInput: string): Promise<string> => {
     const lowercaseInput = userInput.toLowerCase().trim()
-
+  
     // Tool detection and execution
     if (lowercaseInput.includes('list') && lowercaseInput.includes('proposal')) {
-      return availableTools['list_proposals'].execute()
+      const fetchedProposals: any = await getProposal();
+      console.log('fetchedProposals:', fetchedProposals)
+      setProposals(fetchedProposals); // Update state for other uses
+      return availableTools['list_proposals'].execute(fetchedProposals)
     }
     if (lowercaseInput.includes('search') || lowercaseInput.includes('find')) {
       return availableTools['web_search'].execute(userInput)
     }
-
+  
     // Default LLM processing with context
-    const ollama = new Ollama({ host: 'https://ollama.photrek.io:11434' })
+    const hostname = aiEndpoint ? `${JSON.parse(aiEndpoint)[0]}: ${JSON.parse(aiEndpoint)[1]}` : 'localhost:11434'
+    const ollama = new Ollama({ host: hostname })
     const systemPrompt = `You are an AI agent assisting with Cardano governance proposals. You have access to proposal data and can provide detailed information when asked. For general questions, respond conversationally. Format your responses in Markdown for readability.
-
+  
                           Available tools:
                           - **list_proposals**: Lists all proposals with details
                           - **web_search**: Simulates a web search (placeholder)
-
+  
                           Current proposal data is available but will be provided by tools when needed. Respond to the user's input directly.
                           `
-
+  
     const response = await ollama.chat({
       model: model,
       messages: [
@@ -153,7 +270,7 @@ export const PromptInputInterface: React.FC = () => {
       ],
       stream: false // We'll handle streaming in sendMessage
     })
-
+  
     return response.message.content
   }
 
@@ -193,7 +310,8 @@ export const PromptInputInterface: React.FC = () => {
           (prev) => [...prev, { role: 'assistant', content: toolResult }]
         )
       } else {
-        const ollama = new Ollama({ host: 'https://ollama.photrek.io:11434' })
+        const hostname = aiEndpoint ? `${JSON.parse(aiEndpoint)[0]}:${JSON.parse(aiEndpoint)[1]}` : 'localhost:11434'
+        const ollama = new Ollama({ host: hostname })
         const response = await ollama.chat({
           model: model,
           messages: [
@@ -274,7 +392,7 @@ export const PromptInputInterface: React.FC = () => {
         >
           <List>
             <Typography level="body-md">
-              AI chat box(Currently only available with Ollama running localy)
+              Agent
             </Typography>
             <hr />
             {messages.map((msg, index) => (

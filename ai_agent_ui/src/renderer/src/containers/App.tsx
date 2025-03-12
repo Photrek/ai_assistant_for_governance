@@ -1,5 +1,5 @@
 import React from 'react'
-import { CssVarsProvider } from '@mui/joy/'
+import { CssVarsProvider, Button } from '@mui/joy/'
 import { TopBar } from '../components/TopBar/TopBar'
 import CssBaseline from '@mui/joy/CssBaseline'
 import '@fontsource/space-grotesk'
@@ -8,15 +8,20 @@ import { OnChainProposalComponent } from '../components/OnChainProposalComponent
 import { Box } from '@mui/joy';
 
 const App = (): JSX.Element => {
+
+  const [ proposalBoxHide, setProposalBoxHide ] = React.useState(true)
+  const handleToggle = () => {
+    setProposalBoxHide(!proposalBoxHide);
+  };
   return (
     <CssVarsProvider>
       <CssBaseline />
       <TopBar />
+
       <Box 
         sx={{
           display: 'flex',
           width: '100%',
-          
           margin: 'auto',
           padding: 2,
           '@media (max-width: 1200px)': { 
@@ -25,12 +30,24 @@ const App = (): JSX.Element => {
           }
         }}
       >
+        <Button
+          onClick={handleToggle}
+          sx={{
+            width: '200px',
+            top: 120,
+            height: '50px',
+            marginBottom: "100px",
+          }}
+          >
+            { proposalBoxHide ? "Show Proposals" : "Hide Proposals" }
+        </Button>
         <Box 
           sx={{ 
             flex: '1 1 0', // This makes it grow and shrink with the container
             marginRight: 2, // Adding some space between the components
-            maxWidth: '50%', // Ensuring it doesn't take more than half the width
-            minWidth: '700px', // Minimum width to prevent too skinny on small screens
+            maxWidth:  !proposalBoxHide  ? '50%' : '100%' , // Ensuring it doesn't take more than half the width
+            width:  !proposalBoxHide  ? '50%' : '100%',
+            minWidth:  !proposalBoxHide  ? '700px' : '1200px', // Minimum width to prevent too skinny on small screens
             '@media (max-width: 1200px)': {
               maxWidth: '100%', // Full width on smaller screens
               marginRight: 0,
@@ -40,19 +57,23 @@ const App = (): JSX.Element => {
         >
           <PromptInputInterface />
         </Box>
-        <Box 
-          sx={{ 
-            flex: '1 1 0', // This makes it grow and shrink with the container
-            maxWidth: '50%', // Ensuring it doesn't take more than half the width
-            minWidth: '700px', // Minimum width to prevent too skinny on small screens
-            '@media (max-width: 1200px)': {
-              maxWidth: '100%', // Full width on smaller screens
-              marginBottom: 2
-            }
-          }}
-        >
-          <OnChainProposalComponent />
-        </Box>
+        {
+          !proposalBoxHide && 
+            <Box 
+            sx={{ 
+              flex: '1 1 0', // This makes it grow and shrink with the container
+              maxWidth: '50%', // Ensuring it doesn't take more than half the width
+              minWidth: '700px', // Minimum width to prevent too skinny on small screens
+              '@media (max-width: 1200px)': {
+                maxWidth: '100%', // Full width on smaller screens
+                marginBottom: 2
+              }
+            }}
+          >
+            <OnChainProposalComponent />
+          </Box>
+        }
+
       </Box>
     </CssVarsProvider>
   )
