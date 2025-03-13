@@ -15,9 +15,13 @@ export const SelectOllamaModel: React.FC = () => {
   }
 
   const get_model_list = async () => {
-    const hostname = aiEndpoint ? `${JSON.parse(aiEndpoint)[0]}:${JSON.parse(aiEndpoint)[1]}` : 'localhost:11434'
+    const aiEndpointParsed = JSON.parse(aiEndpoint);
+    const host = aiEndpointParsed[0];
+    const port = aiEndpointParsed[1];
+    let protocol = (port == 443) ? 'https' : 'http';
+    let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
     try {
-     const ollama = new Ollama({ host: hostname })
+      const ollama = new Ollama({ baseUrl: `${protocol}://${urlHost}` });
       const response = await ollama.list()
       console.log("get_model_list data: ", response)
       setModels(response)
