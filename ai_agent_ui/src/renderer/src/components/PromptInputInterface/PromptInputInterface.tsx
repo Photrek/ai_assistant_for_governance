@@ -255,7 +255,7 @@ export const PromptInputInterface: React.FC = () => {
     const port = aiEndpointParsed[1];
     let protocol = (port == 443) ? 'https' : 'http';
     let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
-    const ollama = new Ollama({ baseUrl: `${protocol}://${urlHost}` });
+    const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
     const systemPrompt = `You are an AI agent assisting with Cardano governance proposals. You have access to proposal data and can provide detailed information when asked. For general questions, respond conversationally. Format your responses in Markdown for readability.
   
                           Available tools:
@@ -319,7 +319,7 @@ export const PromptInputInterface: React.FC = () => {
       const port = aiEndpointParsed[1];
       let protocol = (port == 443) ? 'https' : 'http';
       let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
-      const ollama = new Ollama({ baseUrl: `${protocol}://${urlHost}` });
+      const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
         const response = await ollama.chat({
           model: model,
           messages: [

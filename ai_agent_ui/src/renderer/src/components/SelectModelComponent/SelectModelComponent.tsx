@@ -22,7 +22,7 @@ export const SelectOllamaModel: React.FC = () => {
     let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
     console.log("urlHost: ", urlHost)
     try {
-      const ollama = new Ollama({ baseUrl: `${protocol}://${urlHost}` });
+      const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
       const response = await ollama.list()
       console.log("get_model_list data: ", response)
       setModels(response)
