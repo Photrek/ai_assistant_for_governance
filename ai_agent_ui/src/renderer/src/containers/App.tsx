@@ -6,13 +6,12 @@ import '@fontsource/space-grotesk'
 import { PromptInputInterface } from '../components/PromptInputInterface/PromptInputInterface'
 import { OnChainProposalComponent } from '../components/OnChainProposalComponent/OnChainProposalComponent'
 import { Box } from '@mui/joy';
+import { showProposalsHook } from '../hooks/miscHooks'
 
 const App = (): JSX.Element => {
 
-  const [ proposalBoxHide, setProposalBoxHide ] = React.useState(true)
-  const handleToggle = () => {
-    setProposalBoxHide(!proposalBoxHide);
-  };
+  const [ proposalBoxHide, setProposalBoxHide ] = showProposalsHook()
+  
   return (
     <CssVarsProvider>
       <CssBaseline />
@@ -30,17 +29,7 @@ const App = (): JSX.Element => {
           }
         }}
       >
-        <Button
-          onClick={handleToggle}
-          sx={{
-            width: '200px',
-            top: 120,
-            height: '50px',
-            marginBottom: "100px",
-          }}
-          >
-            { proposalBoxHide ? "Show Proposals" : "Hide Proposals" }
-        </Button>
+
         <Box 
           sx={{ 
             flex: '1 1 0', // This makes it grow and shrink with the container

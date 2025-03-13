@@ -1,14 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react'
 import { DarkLightToggle } from '../DarkLightToggle/DarkLightToggle'
-import { Sheet, Typography, IconButton, Menu, MenuItem } from '@mui/joy'
+import { Sheet, Typography, IconButton, Menu, MenuItem, Button } from '@mui/joy'
 import icon from '../../../../../resources/logo.svg?asset'
 import MenuIcon from '@mui/icons-material/Menu'
 import { EndpointSettingsModal } from '../EndpointSettingsModal/EndpointSettingsModal'
+import { showProposalsHook } from '../../hooks/miscHooks'
 
 export const TopBar = (): JSX.Element => {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
-  const open = Boolean(anchorEl)
+  const [ anchorEl, setAnchorEl ] = React.useState<null | HTMLElement>(null);
+  const [ proposalBoxHide, setProposalBoxHide ] = showProposalsHook()
+
+  const open = Boolean(anchorEl);
+
+  const handleToggle = () => {
+    setProposalBoxHide(!proposalBoxHide);
+  };
 
   const handleClick = (event: React.MouseEvent<HTMLElement>): void => {
     // If the menu is open, close it; otherwise, open it
@@ -35,11 +42,15 @@ export const TopBar = (): JSX.Element => {
         }}
       >
         <EndpointSettingsModal />
+        <Button onClick={handleToggle} >
+            { proposalBoxHide ? "Show Proposals" : "Hide Proposals" }
+        </Button>
         <Typography level="h4" sx={{ display: 'flex', alignItems: 'center' }}>
           { /* <img src={icon} alt="Icon" height="25" style={{ marginRight: '0.5rem' }} /> */}
           AI Assistant for Governance: Empowering Team-Based dReps
         </Typography>
         <Sheet>
+
           {/* Settings Menu Button */}
           <IconButton onClick={handleClick} size="sm">
             <MenuIcon />

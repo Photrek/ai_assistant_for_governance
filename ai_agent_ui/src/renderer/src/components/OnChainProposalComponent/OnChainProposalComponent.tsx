@@ -9,31 +9,34 @@ import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/
 import { BlockMath, InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { proposalsHook } from '../../hooks/proposalsHook';
+import { showProposalsHook } from '../../hooks/miscHooks'
 
 export const OnChainProposalComponent: React.FC = () => {
   const [ proposals, setProposals ] = proposalsHook<any[]>();
   const { mode, setMode } = useColorScheme();
+  const [ proposalBoxHide, setProposalBoxHide ] = showProposalsHook()
 
-  console.log('mode', mode);
+  // console.log('mode', mode);
 
   const getProposal = async () => {
+    console.log('getProposal')
     const method: string = 'queryLedgerState/governanceProposals';
     const params = {
-      params: {
-        proposals: []
-      }
+      proposals: []
     };
 
     let wspRes = wsp(method, params);
+    console.log('wspRes', wspRes);
     wspRes.onmessage = (e: any) => {
       const results = JSON.parse(e.data);
+      console.log('results', results);
       parseResults(results.result);
     };
   };
 
   async function parseResults(results: any[]): Promise<void> {
     setProposals([]);
-    console.log('results', results);
+     console.log('results', results);
     try {
       const parsedProposals = await Promise.all(
         results.map(async (proposal: any) => {
@@ -120,7 +123,7 @@ export const OnChainProposalComponent: React.FC = () => {
 
   useEffect(() => {
     getProposal();
-  }, []);
+  }, [proposalBoxHide]);
 
   return (
     <Sheet

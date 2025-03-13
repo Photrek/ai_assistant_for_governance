@@ -281,7 +281,7 @@ export const PromptInputInterface: React.FC = () => {
   const sendMessage = async () => {
     if (!input.trim()) return
 
-    const userMessage = { role: 'user', content: input }
+    const userMessage: Message = { role: 'user', content: input }
     setMessages(
       (prev) => [...prev, userMessage]
     )
@@ -305,7 +305,7 @@ export const PromptInputInterface: React.FC = () => {
 
       if (isToolRequest) {
         const toolResult = await agentProcess(input)
-        const renderedContent = await renderMessageContent(toolResult)
+        const renderedContent = renderMessageContent(toolResult)
         setMessages((prev) => [
           ...prev.filter((item) => item.role !== 'thinking'),
           { role: 'assistant', content: renderedContent }
