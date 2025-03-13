@@ -21,9 +21,7 @@ export const OnChainProposalComponent: React.FC = () => {
   const getProposal = async () => {
     console.log('getProposal')
     const method: string = 'queryLedgerState/governanceProposals';
-    const params = {
-      proposals: []
-    };
+    const params = {};
 
     let wspRes = wsp(method, params);
     console.log('wspRes', wspRes);
