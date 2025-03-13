@@ -1,5 +1,5 @@
 import React from 'react'
-import { FormLabel, Select, Option, SelectChangeEvent } from '@mui/joy'
+import { FormLabel, Select, Option } from '@mui/joy'
 import { useModel } from '../../hooks/useModel'
 import { Ollama } from 'ollama/browser';
 import { useAIEndpoint } from '../../hooks/useEndpointHook';
@@ -9,7 +9,7 @@ export const SelectOllamaModel: React.FC = () => {
   const [selectedModel, setSelectedModel]: any = useModel()
   const [aiEndpoint, setAIendpoint]: any = useAIEndpoint();
 
-  const handleChange = (event: SelectChangeEvent<string>, newValue: string) => {
+  const handleChange = (newValue: any) => {
     // Joy UI's Select component uses `onChange` with two parameters
     setSelectedModel(newValue)
   }
@@ -20,6 +20,7 @@ export const SelectOllamaModel: React.FC = () => {
     const port = aiEndpointParsed[1];
     let protocol = (port == 443) ? 'https' : 'http';
     let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
+    console.log("urlHost: ", urlHost)
     try {
       const ollama = new Ollama({ baseUrl: `${protocol}://${urlHost}` });
       const response = await ollama.list()
