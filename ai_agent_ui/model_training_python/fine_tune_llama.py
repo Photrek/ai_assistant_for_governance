@@ -3,6 +3,9 @@
 # PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 # project id: 1048008
 # task id: 36687405
+# export OLLAMA_HOST="0.0.0.0:11435"
+# export OLLAMA_ORIGINS="*"
+# ollama serve
 # watch -d -n 1 nvidia-smi
 # Run ollama create cardano-llama -f ./cardano_llama3.2-1B/Modelfile and ollama run cardano-llama to test the model.
 # From home pc to base: ssh -i ~/.ssh/bakon_nerc -v -L 8080:localhost:7861 bakon@199.94.60.53

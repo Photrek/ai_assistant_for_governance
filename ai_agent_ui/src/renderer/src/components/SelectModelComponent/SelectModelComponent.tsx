@@ -9,7 +9,7 @@ export const SelectOllamaModel: React.FC = () => {
   const [selectedModel, setSelectedModel]: any = useModel()
   const [aiEndpoint, setAIendpoint]: any = useAIEndpoint();
 
-  const handleChange = (newValue: any) => {
+  const handleChange = (event: any, newValue: any) => {
     // Joy UI's Select component uses `onChange` with two parameters
     setSelectedModel(newValue)
   }
@@ -20,7 +20,6 @@ export const SelectOllamaModel: React.FC = () => {
     const port = aiEndpointParsed[1];
     let protocol = (port == 443) ? 'https' : 'http';
     let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
-    console.log("urlHost: ", urlHost)
     try {
       const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
       const response = await ollama.list()
