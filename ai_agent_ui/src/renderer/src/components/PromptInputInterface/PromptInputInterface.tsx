@@ -31,22 +31,133 @@ export const PromptInputInterface: React.FC = () => {
   const [ domain, setDomain ] = useState('')
   const [ aiEndpoint, setAIendpoint ]: any = useAIEndpoint()
   const [ proposals, setProposals ]: any = proposalsHook()
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const { mode, setMode } = useColorScheme()
-
-  const scrollToBottom = () => {
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  function scrollToBottom() 
+  {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }
   
-  const getProposal = async () => {
-    const method: string = 'queryLedgerState/governanceProposals';
-    const params = {
-      params: {
-        proposals: []
+  /* 
+  -------------------------------------- 
+  This is where it all starts 
+  -------------------------------------- 
+  */
+  async function sendMessage()
+  {
+    if (!input.trim()) return
+
+    const userMessage: Message = { role: 'user', content: input }
+
+    setMessages(
+      (prev) => [
+        ...prev, userMessage
+      ]
+    )
+    setMessageHistory(
+      (prev) => [
+        ...prev, userMessage
+      ]
+    )
+    setInput('')
+
+    setMessages((prev) => [
+      ...prev,
+      { role: 'thinking', content: <img src={brain} alt="brain" height="50" /> }
+    ])
+
+    try {
+      console.log('input:', input.toLowerCase().includes('governance proposals'));
+      const isToolRequest =
+           input.toLowerCase().includes('list') 
+        || input.toLowerCase().includes('proposal')
+        || input.toLowerCase().includes('governance proposals')
+
+        || input.toLowerCase().includes('search') 
+        || input.toLowerCase().includes('find')
+
+      console.log('isToolRequest:', isToolRequest)
+
+      if (isToolRequest) {
+        const toolResult = await agentProcess(input)
+        const renderedContent = renderMessageContent(toolResult)
+        console.log("renderedContent: ", renderedContent);
+        setMessages((prev) => [
+          ...prev.filter((item) => item.role !== 'thinking'),
+          { role: 'assistant', content: renderedContent }
+        ])
+        setMessageHistory(
+          (prev) => [
+            ...prev, { role: 'assistant', content: toolResult }
+          ]
+        )
+      } else {
+      const aiEndpointParsed = JSON.parse(aiEndpoint);
+      const host = aiEndpointParsed[0];
+      const port = aiEndpointParsed[1];
+      let protocol = (port == 443) ? 'https' : 'http';
+      let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
+      const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
+        const response = await ollama.chat({
+          model: model,
+          messages: [
+            {
+              role: 'system',
+              content: `
+              You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown. Use the conversation history and respond to the user's input directly.
+            `
+            },
+            ...messageHistory,
+            { role: 'user', content: input }
+          ],
+          stream: true
+        })
+
+        let accumulatedResponse = ''
+        setMessages((prev) => prev.filter((item) => item.role !== 'thinking'))
+
+        for await (const part of response) {
+          accumulatedResponse += part.message.content
+          const renderedContent = renderMessageContent(accumulatedResponse)
+
+          setMessages((prev) => {
+            const withoutThinking = prev.filter((item) => item.role !== 'thinking')
+            const lastWasAssistant =
+              withoutThinking[withoutThinking.length - 1]?.role === 'assistant'
+
+            if (lastWasAssistant) {
+              return [
+                ...withoutThinking.slice(0, -1),
+                { role: 'assistant', content: renderedContent }
+              ]
+            }
+            return [...withoutThinking, { role: 'assistant', content: renderedContent }]
+          })
+        }
+
+        setMessageHistory((prev) => [...prev, { role: 'assistant', content: accumulatedResponse }])
       }
-    };
+    } catch (error) {
+      console.error('Error in sendMessage:', error)
+      setMessages((prev) => [
+        ...prev.filter((item) => item.role !== 'thinking'),
+        { role: 'assistant', content: 'Error occurred while processing your request' }
+      ])
+    }
+  }
+
+  /* 
+  ----------------------------------------------------------------------------  
+  Function that queries the ledger state for governance proposals
+  ----------------------------------------------------------------------------  
+  */
+  async function getProposal()
+  {
+    const method: string = 'queryLedgerState/governanceProposals';
+    const params ={};
   
     let wspRes = await wsp(method, params);
     return new Promise((resolve, reject) => {
@@ -61,8 +172,12 @@ export const PromptInputInterface: React.FC = () => {
       };
     });
   };
-
-  const parseResults = async (results: any[]): Promise<Array<{ proposal: any, metadata: any }>> => {
+  /* 
+  ----------------------------------------------------------------------------  
+  Function that parses all the metadata from the onchain proposals
+  ----------------------------------------------------------------------------  
+  */
+  async function parseResults(results: any[]): Promise<Array<{ proposal: any, metadata: any }>>{
     console.log('results', results);
     try {
       const parsedProposals = await Promise.all(
@@ -80,15 +195,13 @@ export const PromptInputInterface: React.FC = () => {
       return [];
     }
   };
-
-  const preprocessMath = (text: string): string => {
-    return text
-      .replace(/times/g, '\\cdot')
-      .replace(/frac/g, '\\frac')
-      .replace(/\\(.)/g, '$1'); // Unescapes backslashes if needed
-  };
-
-  const loadJsonMetadata = async (metadataUri: string) => {
+  /* 
+  ----------------------------------------------------------------------------  
+  Fetches metadata from IPFS or HTTP specified in onchain proposal
+  ----------------------------------------------------------------------------  
+  */
+  async function loadJsonMetadata(metadataUri: string)
+  {
     let uri = metadataUri.startsWith('ipfs://') 
       ? `https://ipfs.onchainapps.io/ipfs/${metadataUri.slice(7)}` 
       : metadataUri;
@@ -114,7 +227,23 @@ export const PromptInputInterface: React.FC = () => {
       return null;
     }
   };
+  /* 
+  ----------------------------------------------------------------------------  
+  Process math equations in text
+  ----------------------------------------------------------------------------  
+  */
+  const preprocessMath = (text: string): string => {
+    return text
+      .replace(/times/g, '\\cdot')
+      .replace(/frac/g, '\\frac')
+      .replace(/\\(.)/g, '$1'); // Unescapes backslashes if needed
+  };
 
+  /* 
+  ----------------------------------------------------------------------------  
+  Renders all markdown content in the chat interface that's been preprocessed
+  ----------------------------------------------------------------------------  
+  */
   function renderMessageContent(msg: string | undefined): React.ReactNode {
     if (typeof msg !== 'string') {
       console.warn('Expected msg to be a string, received:', typeof msg);
@@ -191,16 +320,75 @@ export const PromptInputInterface: React.FC = () => {
   
     return elements.length > 0 ? elements : <Typography level="body-md">{msg}</Typography>;
   };
+  /* 
+  ----------------------------------------------------------------------------  
+  Proccess user input to see if there is anything in it that could be processed by agent tool.
+  ----------------------------------------------------------------------------  
+  */
+  const agentProcess = async (userInput: string): Promise<string> => {
+    const lowercaseInput = userInput.toLowerCase().trim()
+  
+    // Tool detection and execution
+    if 
+    (
+          lowercaseInput.includes('list') 
+      ||  lowercaseInput.includes('proposal')
+      ||  lowercaseInput.includes('governance proposals')
+    )  
+    {
+      const fetchedProposals: any = await getProposal();
+      console.log('fetchedProposals:', fetchedProposals)
+      setProposals(fetchedProposals); // Update state for other uses
+      return availableTools['list_proposals'].execute(fetchedProposals)
+    }
+
+    if 
+    (
+          lowercaseInput.includes('search') 
+      ||  lowercaseInput.includes('find')
+    ) 
+    {
+      return availableTools['web_search'].execute(userInput)
+    }
+  
+    // Default LLM processing with context
+    const aiEndpointParsed = JSON.parse(aiEndpoint);
+    const host = aiEndpointParsed[0];
+    const port = aiEndpointParsed[1];
+    let protocol = (port == 443) ? 'https' : 'http';
+    let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
+    const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
+    const systemPrompt = `You are an AI agent name Lalkul assisting with Cardano governance proposals. You have access to proposal data and can provide detailed information when asked. For general questions, respond conversationally. Format your responses in Markdown for readability.
+  
+                          Available tools:
+                          - **list_proposals**: Lists all proposals with details
+                          - **web_search**: Simulates a web search (placeholder)
+  
+                          Current proposal data is available but will be provided by tools when needed. Respond to the user's input directly.
+                          `
+  
+    const response = await ollama.chat({
+      model: model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messageHistory,
+        { role: 'user', content: userInput }
+      ],
+      stream: false // We'll handle streaming in sendMessage
+    })
+  
+    return response.message.content
+  }
 
   const availableTools = {
     list_proposals: {
       description: 'Lists all available proposals with details in Markdown format',
       execute: (proposalData: any[]) => {
+        console.log("proposalData: ", proposalData);
         if (!proposalData || proposalData.length === 0) {
           return 'No proposals available'
         }
-        const proposalList = proposalData
-          .map((item: any, i: number) => {
+        const proposalList = proposalData.map((item: any, i: number) => {
             const p = item.proposal
             const meta = item.metadata?.body || {}
             const voteSummary = p.votes.reduce((acc: any, vote: any) => {
@@ -232,139 +420,6 @@ export const PromptInputInterface: React.FC = () => {
         Searching web for: *${query}*  
         *(Note: Full implementation would require API integration)*
         `
-    }
-  }
-
-  const agentProcess = async (userInput: string): Promise<string> => {
-    const lowercaseInput = userInput.toLowerCase().trim()
-  
-    // Tool detection and execution
-    if (lowercaseInput.includes('list') && lowercaseInput.includes('proposal')) {
-      const fetchedProposals: any = await getProposal();
-      console.log('fetchedProposals:', fetchedProposals)
-      setProposals(fetchedProposals); // Update state for other uses
-      return availableTools['list_proposals'].execute(fetchedProposals)
-    }
-    if (lowercaseInput.includes('search') || lowercaseInput.includes('find')) {
-      return availableTools['web_search'].execute(userInput)
-    }
-  
-    // Default LLM processing with context
-    const aiEndpointParsed = JSON.parse(aiEndpoint);
-    const host = aiEndpointParsed[0];
-    const port = aiEndpointParsed[1];
-    let protocol = (port == 443) ? 'https' : 'http';
-    let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
-    const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
-    const systemPrompt = `You are an AI agent assisting with Cardano governance proposals. You have access to proposal data and can provide detailed information when asked. For general questions, respond conversationally. Format your responses in Markdown for readability.
-  
-                          Available tools:
-                          - **list_proposals**: Lists all proposals with details
-                          - **web_search**: Simulates a web search (placeholder)
-  
-                          Current proposal data is available but will be provided by tools when needed. Respond to the user's input directly.
-                          `
-  
-    const response = await ollama.chat({
-      model: model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messageHistory,
-        { role: 'user', content: userInput }
-      ],
-      stream: false // We'll handle streaming in sendMessage
-    })
-  
-    return response.message.content
-  }
-
-  const sendMessage = async () => {
-    if (!input.trim()) return
-
-    const userMessage: Message = { role: 'user', content: input }
-    setMessages(
-      (prev) => [...prev, userMessage]
-    )
-    setMessageHistory(
-      (prev) => [...prev, userMessage]
-    )
-    setInput('')
-
-    setMessages((prev) => [
-      ...prev,
-      { role: 'thinking', content: <img src={brain} alt="brain" height="50" /> }
-    ])
-
-    try {
-      const isToolRequest =
-        (
-          input.toLowerCase().includes('list') && input.toLowerCase().includes('proposal')
-        ) ||
-        input.toLowerCase().includes('search') ||
-        input.toLowerCase().includes('find')
-
-      if (isToolRequest) {
-        const toolResult = await agentProcess(input)
-        const renderedContent = renderMessageContent(toolResult)
-        setMessages((prev) => [
-          ...prev.filter((item) => item.role !== 'thinking'),
-          { role: 'assistant', content: renderedContent }
-        ])
-        setMessageHistory(
-          (prev) => [...prev, { role: 'assistant', content: toolResult }]
-        )
-      } else {
-      const aiEndpointParsed = JSON.parse(aiEndpoint);
-      const host = aiEndpointParsed[0];
-      const port = aiEndpointParsed[1];
-      let protocol = (port == 443) ? 'https' : 'http';
-      let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
-      const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
-        const response = await ollama.chat({
-          model: model,
-          messages: [
-            {
-              role: 'system',
-              content: `
-              You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown. Use the conversation history and respond to the user's input directly.
-            `
-            },
-            ...messageHistory,
-            { role: 'user', content: input }
-          ],
-          stream: true
-        })
-
-        let accumulatedResponse = ''
-        setMessages((prev) => prev.filter((item) => item.role !== 'thinking'))
-
-        for await (const part of response) {
-          accumulatedResponse += part.message.content
-          const renderedContent = await renderMessageContent(accumulatedResponse)
-
-          setMessages((prev) => {
-            const withoutThinking = prev.filter((item) => item.role !== 'thinking')
-            const lastWasAssistant =
-              withoutThinking[withoutThinking.length - 1]?.role === 'assistant'
-
-            if (lastWasAssistant) {
-              return [
-                ...withoutThinking.slice(0, -1),
-                { role: 'assistant', content: renderedContent }
-              ]
-            }
-            return [...withoutThinking, { role: 'assistant', content: renderedContent }]
-          })
-        }
-
-        setMessageHistory((prev) => [...prev, { role: 'assistant', content: accumulatedResponse }])
-      }
-    } catch (error) {
-      console.error('Error in sendMessage:', error)
-      setMessages((prev) => [
-        ...prev.filter((item) => item.role !== 'thinking'),
-        { role: 'assistant', content: 'Error occurred while processing your request' }
-      ])
     }
   }
 

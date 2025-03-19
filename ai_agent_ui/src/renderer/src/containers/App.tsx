@@ -1,11 +1,10 @@
 import React from 'react'
-import { CssVarsProvider, Button } from '@mui/joy/'
+import { CssVarsProvider, Button, Box } from '@mui/joy/'
 import { TopBar } from '../components/TopBar/TopBar'
 import CssBaseline from '@mui/joy/CssBaseline'
 import '@fontsource/space-grotesk'
 import { PromptInputInterface } from '../components/PromptInputInterface/PromptInputInterface'
 import { OnChainProposalComponent } from '../components/OnChainProposalComponent/OnChainProposalComponent'
-import { Box } from '@mui/joy';
 import { showProposalsHook } from '../hooks/miscHooks'
 
 const App = (): JSX.Element => {
