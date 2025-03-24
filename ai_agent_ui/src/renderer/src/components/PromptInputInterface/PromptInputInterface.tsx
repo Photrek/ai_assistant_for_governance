@@ -17,7 +17,7 @@ import brain_dark from '../../../../assets/artificial-intelligence-dark.gif'
 import { proposalsHook } from '../../hooks/proposalsHook'
 import { wsp, getCurrentEpochTime } from '../../API/ogmiosApi';
 import Refresh from '@mui/icons-material/Refresh';
-
+import rehypeRaw from 'rehype-raw';
 
 interface Message {
   role: 'user' | 'assistant' | 'thinking' | 'system';
@@ -25,9 +25,6 @@ interface Message {
 }
 
 export const PromptInputInterface: React.FC = () => {
-
-
-
   const [ messages, setMessages ] = useState<Message[]>([]);
   const [ messageHistory, setMessageHistory ] = useState<Message[]>([]);
   const [ input, setInput ] = useState('');
@@ -376,7 +373,7 @@ export const PromptInputInterface: React.FC = () => {
             );
             i += 2;
           }
-        } else if (part.startsWith('$$  ') && part.endsWith('  $$')) { // Block Math
+        } else if (part.startsWith('$$    ') && part.endsWith('    $$')) { // Block Math
           const math = part.slice(2, -2).trim();
           elements.push(
             <Typography key={`math-${i}`} level="body-md">
@@ -405,7 +402,7 @@ export const PromptInputInterface: React.FC = () => {
             if (segment.startsWith('$') && segment.endsWith('$')) {
               return <InlineMath key={`inline-math-${idx}`}>{segment.slice(1, -1)}</InlineMath>;
             }
-            return <Markdown key={`text-${idx}`}>{segment}</Markdown>;
+            return <Markdown rehypePlugins={[rehypeRaw]} key={`text-${idx}`}>{segment}</Markdown>;
           });
   
           elements.push(
