@@ -5,11 +5,8 @@ import CssBaseline from '@mui/joy/CssBaseline'
 import '@fontsource/space-grotesk'
 import { PromptInputInterface } from '../components/PromptInputInterface/PromptInputInterface'
 import { OnChainProposalComponent } from '../components/OnChainProposalComponent/OnChainProposalComponent'
-import { showProposalsHook } from '../hooks/miscHooks'
 
 const App = (): JSX.Element => {
-
-  const [ proposalBoxHide, setProposalBoxHide ] = showProposalsHook()
   
   return (
     <CssVarsProvider>
@@ -33,9 +30,9 @@ const App = (): JSX.Element => {
           sx={{ 
             flex: '1 1 0', // This makes it grow and shrink with the container
             marginRight: 2, // Adding some space between the components
-            maxWidth:  !proposalBoxHide  ? '50%' : '100%' , // Ensuring it doesn't take more than half the width
-            width:  !proposalBoxHide  ? '50%' : '100%',
-            minWidth:  !proposalBoxHide  ? '700px' : '1200px', // Minimum width to prevent too skinny on small screens
+            maxWidth:  '100%' , // Ensuring it doesn't take more than half the width
+            width:  '100%',
+            minWidth: '1200px', // Minimum width to prevent too skinny on small screens
             '@media (max-width: 1200px)': {
               maxWidth: '100%', // Full width on smaller screens
               marginRight: 0,
@@ -45,7 +42,7 @@ const App = (): JSX.Element => {
         >
           <PromptInputInterface />
         </Box>
-        {
+        {/*
           !proposalBoxHide && 
             <Box 
             sx={{ 
@@ -60,7 +57,7 @@ const App = (): JSX.Element => {
           >
             <OnChainProposalComponent />
           </Box>
-        }
+        */}
 
       </Box>
     </CssVarsProvider>

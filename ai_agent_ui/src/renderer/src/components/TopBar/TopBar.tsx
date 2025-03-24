@@ -5,12 +5,12 @@ import { Sheet, Typography, IconButton, Menu, MenuItem, Button } from '@mui/joy'
 import icon from '../../../../../resources/logo.svg?asset';
 import MenuIcon from '@mui/icons-material/Menu';
 import { EndpointSettingsModal } from '../EndpointSettingsModal/EndpointSettingsModal';
-import { showProposalsHook } from '../../hooks/miscHooks';
+import { OnChainProposalComponent } from '../OnChainProposalComponent/OnChainProposalComponent';
 import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 
 export const TopBar = (): JSX.Element => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const [proposalBoxHide, setProposalBoxHide] = showProposalsHook();
+
 
   const open = Boolean(anchorEl);
 
@@ -63,9 +63,7 @@ export const TopBar = (): JSX.Element => {
               <EndpointSettingsModal />
             </MenuItem>
             <MenuItem>
-              <Button sx={{width: "100%"}} variant="outlined" onClick={handleToggle}>
-                {proposalBoxHide ? "Show Proposals" : "Hide Proposals"}
-              </Button>
+              <OnChainProposalComponent />
             </MenuItem>
 
           </Menu>  

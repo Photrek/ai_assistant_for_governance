@@ -1,20 +1,18 @@
-import React, { useState, useEffect, ReactNode } from 'react';
-import { Sheet, Button, List, ListItem, Typography, Box, Card, Divider } from '@mui/joy';
+import React, { useState, ReactNode } from 'react';
+import { Sheet, Button, List, ListItem, Typography, Box, Card, Divider, Modal, ModalClose } from '@mui/joy';
 import { wsp } from '../../API/ogmiosApi';
 import { useColorScheme } from '@mui/joy/styles';
-import { decode } from 'cbor-x';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import Markdown from 'react-markdown';
 import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { BlockMath, InlineMath } from 'react-katex';
-import 'katex/dist/katex.min.css';
 import { proposalsHook } from '../../hooks/proposalsHook';
-import { showProposalsHook } from '../../hooks/miscHooks'
+import Markdown from 'react-markdown';
+import 'katex/dist/katex.min.css';
 
 export const OnChainProposalComponent: React.FC = () => {
   const [ proposals, setProposals ] = proposalsHook<any[]>();
   const { mode, setMode } = useColorScheme();
-  const [ proposalBoxHide, setProposalBoxHide ] = showProposalsHook()
+  const [open, setOpen] = React.useState<boolean>(false);
 
   // console.log('mode', mode);
 
@@ -105,54 +103,56 @@ export const OnChainProposalComponent: React.FC = () => {
     return str;
   };
 
-  const metadataCbortoJSON = async (cborString: string) => {
-    cborString = 'your_cbor_string_here'; // Replace with actual string or remove this line if you're passing it
-    try {
-      const metadataJSONBuffer = await toBuffer(cborString);
-      const metadataCBOR = decode(metadataJSONBuffer);
-      const onetoHex = fromBuffer(metadataCBOR['0']);
-      console.log('cborJson', onetoHex);
-      return metadataCBOR;
-    } catch (error) {
-      console.log('cborJson Error', error);
-      return error;
-    }
+  const handleOpen = () => {
+    setOpen(true)
+    getProposal();
   };
 
-  useEffect(() => {
-    getProposal();
-  }, [proposalBoxHide]);
-
   return (
-    <Sheet
-      sx={{
-        mt: 20,
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%',
-        height: '90vh',
-        borderRadius: 'md',
-        overflow: 'hidden',
-        boxShadow: 'sm',
-        bgcolor: mode === 'dark' ? 'background.surface' : 'background.body',
-        '@media (max-width: 960px)': {
-          height: 'calc(100vh - 64px)'
-        }
-      }}
+    <>
+    <Button sx={{width: "100%"}} variant="outlined" onClick={() => handleOpen()} >
+      View Proposals
+    </Button>
+    <Modal
+      aria-labelledby="modal-title"
+      aria-describedby="modal-desc"
+      open={open}
+      onClose={() => setOpen(false)}
+      sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
     >
       <Sheet
         sx={{
-          flexGrow: 1,
-          overflowY: 'auto',
-          p: 2,
-          bgcolor: mode === 'dark' ? 'background.surface' : 'background.body'
+          mt: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          width: '90vh',
+          height: '90vh',
+          borderRadius: 'md',
+          overflow: 'hidden',
+          boxShadow: 'sm',
+          bgcolor: mode === 'dark' ? 'background.surface' : 'background.body',
+          '@media (max-width: 960px)': {
+            height: 'calc(100vh - 64px)'
+          }
         }}
       >
-        <List>
-          <GovernanceProposals proposals={proposals} mode={mode} />
-        </List>
+        <ModalClose variant="plain" sx={{ m: 1 }} />
+        <Divider />
+        <Sheet
+          sx={{
+            flexGrow: 1,
+            overflowY: 'auto',
+            p: 2,
+            bgcolor: mode === 'dark' ? 'background.surface' : 'background.body'
+          }}
+        >
+          <List>
+            <GovernanceProposals proposals={proposals} mode={mode} />
+          </List>
+        </Sheet>
       </Sheet>
-    </Sheet>
+    </Modal>
+    </>
   );
 };
 
@@ -257,6 +257,7 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
   };
 
   return (
+
     <Sheet
       sx={{
         display: 'flex',
@@ -285,11 +286,11 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
                   </Typography>
                   <Divider sx={{ my: 1 }} />
                   <Typography level="body-sm" sx={{ mb: 1 }}>
-                    <strong>Type:</strong> {proposal.proposal.action.type}<br />
-                    <strong>ID:</strong> {proposal.proposal.proposal.transaction.id}<br />
-                    <strong>Since:</strong> {proposal.proposal.since.epoch}<br />
-                    <strong>Until:</strong> {proposal.proposal.until.epoch}<br />
-                    <strong>Deposit:</strong> {proposal.proposal.deposit.ada.lovelace} Lovelace
+                    <strong>Type:</strong> {proposal ? proposal.proposal?.action?.type : "loading..."}<br />
+                    <strong>ID:</strong> {proposal ? proposal.proposal?.proposal?.transaction.id : "loading..."}<br />
+                    <strong>Since:</strong> {proposal ? proposal.proposal?.since?.epoch : "loading..."}<br />
+                    <strong>Until:</strong> {proposal ? proposal.proposal?.until?.epoch : "loading..."}<br />
+                    <strong>Deposit:</strong> {proposal ? proposal.proposal?.deposit?.ada.lovelace: "loading..."} Lovelace
                   </Typography>
 
                   <Box sx={{ mt: 2 }}>

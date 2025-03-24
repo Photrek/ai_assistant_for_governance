@@ -13,11 +13,12 @@ import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/
 import { useColorScheme } from '@mui/joy/styles'
 import './PromptInputInterface.css'
 import brain from '../../../../assets/artificial-intelligence.gif'
+import brain_dark from '../../../../assets/artificial-intelligence-dark.gif'
 import { proposalsHook } from '../../hooks/proposalsHook'
 import { wsp, getCurrentEpochTime } from '../../API/ogmiosApi';
 
 const agentPrompt = `
-                You are an AI agent assisting with Cardano governance proposals, respond as a 1700s US founding father and be a bit snarky and witty.
+                You are an AI agent assisting with Cardano governance proposals, take on the persona of Franklin D. Roosevelt and be a bit snarky and witty.
                 The conversation history contains a system message starting with "Proposal data:" followed by a JSON array of Cardano governance proposals.
                 
                 Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
@@ -75,7 +76,7 @@ export const PromptInputInterface: React.FC = () => {
   
     setMessages((prev) => [
       ...prev,
-      { role: 'thinking', content: <img src={brain} alt="brain" height="50" /> },
+      { role: 'thinking', content: <img src={mode === "dark" ? brain_dark : brain} alt="brain" height="50" /> },
     ]);
   
     try {

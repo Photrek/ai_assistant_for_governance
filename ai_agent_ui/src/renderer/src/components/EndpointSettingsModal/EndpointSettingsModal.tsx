@@ -33,8 +33,9 @@ export const EndpointSettingsModal: React.FC = () => {
   };
 
   React.useEffect(() => {
-    !aiEndpoint ? setHostAddress('https://ollama.photrek.io') :  setHostAddress(JSON.parse(aiEndpoint)[0])
-    !aiEndpoint ? setPortNumber('443') :  setPortNumber(JSON.parse(aiEndpoint)[1])
+    !aiEndpoint ? setHostAddress('https://ollama.photrek.io') :  setHostAddress(JSON.parse(aiEndpoint)[0]);
+    !aiEndpoint ? setPortNumber('443') :  setPortNumber(JSON.parse(aiEndpoint)[1]);
+    !ogmiosHook ? setOgmiosHook('https://ogmios1mxummq8u5wt9syq7n6a.mainnet-v6.ogmios-m1.demeter.run') : setOgmiosHook(ogmiosHook);
 
   }, [aiEndpoint, ogmiosHook]);
 
@@ -74,7 +75,7 @@ export const EndpointSettingsModal: React.FC = () => {
               variant="outlined"
               size="md"         
               placeholder="Ogmios"
-              value={ogmiosHook ? ogmiosHook : "https://ogmiosmain.onchainapps.io"}
+              value={ogmiosHook ? ogmiosHook : "https://ogmios1mxummq8u5wt9syq7n6a.mainnet-v6.ogmios-m1.demeter.run"}
               onChange={(e) => setOgmiosHook(e.target.value)}
             />
           </Sheet>
