@@ -479,6 +479,10 @@ export const PromptInputInterface: React.FC = () => {
           }
         }}
       >
+        <Typography level="body-md" sx={{m: 1}}>
+          Agent {epochInfo ? `is currently in epoch ${epochInfo.epoch}. Current Epoch Ends In ${epochInfo.timeLeftInEpoch}` : 'is fetching epoch information...'}
+        </Typography>
+        <hr />
         <Sheet
           sx={{
             width: '100%',
@@ -489,10 +493,6 @@ export const PromptInputInterface: React.FC = () => {
           }}
         >
           <List>
-            <Typography level="body-md">
-              Agent {epochInfo ? `is currently in epoch ${epochInfo.epoch}. Current Epoch Ends In ${epochInfo.timeLeftInEpoch}` : 'is fetching epoch information...'}
-            </Typography>
-            <hr />
             {messages.map((msg, index) => (
               <ListItem
                 key={index}
