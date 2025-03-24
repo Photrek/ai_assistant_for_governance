@@ -40,7 +40,7 @@ export const EndpointSettingsModal: React.FC = () => {
 
   return (
     <div>
-      <Button onClick={handleOpen} startDecorator={<SettingsIcon />}>Settings</Button>
+      <Button onClick={handleOpen} startDecorator={<SettingsIcon />} style={{minWidth: "125%"}} variant='outlined'>Settings</Button>
       <Modal open={open} onClose={handleClose}>
         <ModalDialog>
           <ModalClose />

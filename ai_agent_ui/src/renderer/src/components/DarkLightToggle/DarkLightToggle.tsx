@@ -24,7 +24,7 @@ export const DarkLightToggle = () => {
         onChange={(_event, newMode) => {
           setMode(newMode)
         }}
-        sx={{ width: 'max-content' }}
+        sx={{ width: '100%' }}
       >
         <Option value="system">System</Option>
         <Option value="light">Light</Option>

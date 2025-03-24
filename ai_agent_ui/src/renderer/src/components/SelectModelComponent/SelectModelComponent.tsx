@@ -34,16 +34,13 @@ export const SelectOllamaModel: React.FC = () => {
   }, [aiEndpoint])
 
   return (
-    <div>
-      <FormLabel>Select Model</FormLabel>
+    <>
       <Select
         value={selectedModel}
         onChange={handleChange}
         placeholder="Select Model"
         sx={{ 
-          marginLeft: '4px', // Adjust spacing as needed
-          maxWidth: '200px', // Example max width, adjust as needed
-          minWidth: '50px'  // Keeping your original minWidth
+          width: "100%",
         }}
       >
         {models && models.models.map((option: any) => (
@@ -52,6 +49,6 @@ export const SelectOllamaModel: React.FC = () => {
           </Option>
         ))}
       </Select>
-    </div>
+    </>
   )
 }

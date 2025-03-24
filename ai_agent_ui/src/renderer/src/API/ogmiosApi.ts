@@ -76,3 +76,59 @@ export function wsp(method: string, params: WebSocketParams): W3CWebSocket | "er
   
   return ws;
 }
+
+export const ogmiosHealth = async () => {
+  let ogmiosHook = localStorage.getItem("ogmiosHook");
+  if (ogmiosHook === null) {
+    localStorage.setItem("ogmiosHook", "wss://ogmiosmain.onchainapps.io:443");
+    ogmiosHook = "wss://ogmiosmain.onchainapps.io:443";
+  }
+  const requestOptions: any = {
+    method: "GET",
+    redirect: "follow",
+  };
+
+  let settings = {};
+  settings = {
+    method: "GET",
+    headers: {},
+    redirect: "follow",
+  };
+  try {
+    const fetchResponse = await fetch(`${ogmiosHook}/health`, requestOptions);
+    const data = await fetchResponse.json();
+    // console.log(data);
+    return data;
+  } catch (e) {
+    console.log(e);
+    return e;
+  }
+};
+
+export const getCurrentEpochTime = async () => {
+  const chainInfo = await ogmiosHealth();
+  const epochSLotsTotal = 432000;
+  const epoch = chainInfo.currentEpoch;
+  const currentEpochSlot = chainInfo.slotInEpoch;
+  const epochSlotsLeft = epochSLotsTotal - currentEpochSlot;
+  const epochPercentDone = (currentEpochSlot / epochSLotsTotal) * 100;
+  const timeLeftInEpoch = formatSeconds(epochSlotsLeft);
+  return {
+    epoch,
+    currentEpochSlot,
+    epochSlotsLeft,
+    epochPercentDone,
+    timeLeftInEpoch,
+  };
+};
+
+function formatSeconds(totalSeconds) {
+  const days = Math.floor(totalSeconds / 86400); // 86,400 seconds in a day
+  const remainingAfterDays = totalSeconds - (days * 86400);
+  const hours = Math.floor(remainingAfterDays / 3600); // 3,600 seconds in an hour
+  const remainingAfterHours = remainingAfterDays - (hours * 3600);
+  const minutes = Math.floor(remainingAfterHours / 60); // 60 seconds in a minute
+  const seconds = remainingAfterHours - (minutes * 60);
+
+  return `${days}d : ${hours}h : ${minutes}m : ${seconds}s`;
+}

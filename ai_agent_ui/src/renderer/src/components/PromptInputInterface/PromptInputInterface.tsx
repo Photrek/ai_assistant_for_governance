@@ -5,7 +5,6 @@ import ClearIcon from '@mui/icons-material/Clear'
 import { useModel } from '../../hooks/useModel'
 import { Ollama } from 'ollama/browser';
 import { useAIEndpoint } from '../../hooks/useEndpointHook'
-import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import Markdown from 'react-markdown'
 import { BlockMath, InlineMath } from 'react-katex';
@@ -15,18 +14,25 @@ import { useColorScheme } from '@mui/joy/styles'
 import './PromptInputInterface.css'
 import brain from '../../../../assets/artificial-intelligence.gif'
 import { proposalsHook } from '../../hooks/proposalsHook'
-import { wsp } from '../../API/ogmiosApi';
+import { wsp, getCurrentEpochTime } from '../../API/ogmiosApi';
 
 const agentPrompt = `
-                You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown also respond as a 1700s USA founding father.
+                You are an AI agent assisting with Cardano governance proposals, respond as a 1700s US founding father and be a bit snarky and witty.
                 The conversation history contains a system message starting with "Proposal data:" followed by a JSON array of Cardano governance proposals.
+                
                 Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
                 When the user asks about proposals (e.g., "list proposals" or "what are the proposal IDs"), locate this system message, parse the JSON, and use it to answer accurately.
+                Also each proposal will have Epoch start and end time, use this information to answer questions about the current epoch.
+                The conversation history contains a system message starting with "Epoch data:".
+                                
                 For example:
                 - For "list proposals", extract and list the "title" and "transactionId" of each proposal.
                 - For "what are the proposal IDs", return the "transactionId" values.
                 Do not generate fictional data or rely on external knowledge—use only the provided JSON.
+
                 If the JSON is missing or malformed, respond with an error message.
+
+                Make sure you're not outputting any JSON or anything that's not human readable.
               `
 interface Message {
   role: 'user' | 'assistant' | 'thinking' | 'system';
@@ -35,13 +41,14 @@ interface Message {
 
 export const PromptInputInterface: React.FC = () => {
   const [ messages, setMessages ] = useState<Message[]>([])
-  const [messageHistory, setMessageHistory] = useState<Message[]>([]);
+  const [ messageHistory, setMessageHistory ] = useState<Message[]>([]);
   const [ input, setInput ] = useState('')
   const [ model, setModel ]: any = useModel()
   const [ images, setImages ] = useState<string[]>([])
   const [ domain, setDomain ] = useState('')
   const [ aiEndpoint, setAIendpoint ]: any = useAIEndpoint()
   const [ proposals, setProposals ]: any = proposalsHook()
+  const [ epochInfo, setEpochInfo ] = useState<any>()
   const { mode, setMode } = useColorScheme()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
@@ -104,7 +111,8 @@ export const PromptInputInterface: React.FC = () => {
         ],
         stream: true,
         options: {
-          num_ctx: 32768 // Custom context size
+          num_ctx: 32768, // Custom context size
+          temperature: 0 // Make responses more deterministic
         }
       });
   
@@ -125,6 +133,7 @@ export const PromptInputInterface: React.FC = () => {
       }
   
       setMessageHistory((prev) => [...prev, { role: 'assistant', content: accumulatedResponse }]);
+      console.log("token count", await getConversationTokenCount(messageHistory));
     } catch (error) {
       console.error('Error in sendMessage:', error);
       setMessages((prev) => [
@@ -134,9 +143,10 @@ export const PromptInputInterface: React.FC = () => {
     }
   };
 
-    /* 
+  /* 
   ----------------------------------------------------------------------------  
-  Proccess user input to see if there is anything in it that could be processed by agent tool.
+  Function that queries the ledger state for governance proposals and adds
+  it as part of agent history.
   ----------------------------------------------------------------------------  
   */
   async function agentGetProposalsTool() {
@@ -158,6 +168,30 @@ export const PromptInputInterface: React.FC = () => {
       setMessageHistory((prev: any) => [
         ...prev,
         { role: 'system', content: 'Error: Could not fetch proposal data.' },
+      ]);
+    }
+  }
+
+  async function agentGetEpochInformationTool() {
+    
+    try {
+      const epochTime = await getCurrentEpochTime();
+      console.log('epochTime:', epochTime);
+      const isDifferent = JSON.stringify(epochTime) !== JSON.stringify(epochInfo);
+      console.log('isDifferent:', isDifferent);
+      if (isDifferent) {
+        setEpochInfo(epochTime);
+        const epochContent = JSON.stringify(epochTime, null, 2);
+        setMessageHistory((prev: any) => [
+          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Epoch data:'))),
+          { role: 'system', content: `Epoch data: ${epochContent}` },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch Epoch:', error);
+      setMessageHistory((prev: any) => [
+        ...prev,
+        { role: 'system', content: 'Error: Could not fetch epoch data.' },
       ]);
     }
   }
@@ -283,7 +317,7 @@ export const PromptInputInterface: React.FC = () => {
   function renderMessageContent(msg: string | undefined): React.ReactNode {
     if (typeof msg !== 'string') {
       console.warn('Expected msg to be a string, received:', typeof msg);
-      return msg as React.ReactNode; // Type assertion since we can't return 'msg' directly as ReactNode
+      return msg as React.ReactNode;
     }
   
     const parts = msg.split(/(```(\w+)?([\s\S]*?)```|\$\$[\s\S]*?\$\$|(?<!\\)\$(?:(?!\\).)*\$(?<!\\))/);
@@ -298,13 +332,11 @@ export const PromptInputInterface: React.FC = () => {
           const language = parts[i + 1] || 'text';
           const code = parts[i + 2]?.trim() || '';
           if (code) {
-            console.log('language: ', language);
             elements.push(
               <Sheet key={`code-${i}`} variant="outlined" sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
                 <Divider />
                 <Typography level="body-sm" sx={{ fontWeight: 'bold' }}>AI code block:</Typography>
                 <SyntaxHighlighter
-                  key={`code-block-${i}`}
                   language={language}
                   style={mode === 'dark' ? oneDark : duotoneLight}
                   customStyle={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
@@ -315,7 +347,7 @@ export const PromptInputInterface: React.FC = () => {
             );
             i += 2;
           }
-        } else if (part.startsWith('$$') && part.endsWith('$$')) { // Block Math
+        } else if (part.startsWith('$$  ') && part.endsWith('  $$')) { // Block Math
           const math = part.slice(2, -2).trim();
           elements.push(
             <Typography key={`math-${i}`} level="body-md">
@@ -323,20 +355,21 @@ export const PromptInputInterface: React.FC = () => {
             </Typography>
           );
         } else {  // Regular text or inline math
+          const cleanedPart = cleanMessage(part);
           const inlineMathRegex = /\$(.*?)\$/g;
           let match: RegExpExecArray | null;
           let lastIndex = 0;
           const segments: string[] = [];
           
-          while ((match = inlineMathRegex.exec(part))) {
+          while ((match = inlineMathRegex.exec(cleanedPart))) {
             if (match.index > lastIndex) {
-              segments.push(part.slice(lastIndex, match.index));
+              segments.push(cleanedPart.slice(lastIndex, match.index));
             }
             segments.push(match[0]);
             lastIndex = inlineMathRegex.lastIndex;
           }
-          if (lastIndex < part.length) {
-            segments.push(part.slice(lastIndex));
+          if (lastIndex < cleanedPart.length) {
+            segments.push(cleanedPart.slice(lastIndex));
           }
   
           const renderedSegments = segments.map((segment, idx) => {
@@ -354,12 +387,73 @@ export const PromptInputInterface: React.FC = () => {
         }
       }
     }
-  
     return elements.length > 0 ? elements : <Typography level="body-md">{msg}</Typography>;
-  };
+  }
+  function cleanMessage(msg: string): string {
+    return msg.replace(/\n{3,}/g, '\n\n');
+  }
+  /* 
+  ----------------------------------------------------------------------------  
+  Test function for caculating current used context tokens to offload into
+  REG memory system
+  ----------------------------------------------------------------------------  
+  */
+  async function getConversationTokenCount(messages) {
+    const prompt = messages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
+    return await getTokenCount(prompt);
+  }
+  async function getTokenCount(text) {
+    try {
+      const aiEndpointParsed = JSON.parse(aiEndpoint);
+      const host = aiEndpointParsed[0];
+      const port = aiEndpointParsed[1];
+      const urlHost = `${host}:${port}`;
+      const ollama = new Ollama({ host: urlHost });
+      const response = await ollama.generate({
+        model: model,
+        prompt: text,
+        stream: false,
+        options: {
+          num_predict: 0
+        }
+      });
+      console.log('Ollama response:', response);
+      if (response.prompt_eval_count !== undefined) {
+        return response.prompt_eval_count;
+      } else {
+        console.error('prompt_eval_count is undefined');
+        return 0; // or handle accordingly
+      }
+    } catch (error) {
+      console.error('Error in getTokenCount:', error);
+      return 0; // or throw error
+    }
+  }
+
+  /* 
+  ----------------------------------------------------------------------------  
+  Abort all prompts
+  ----------------------------------------------------------------------------  
+  */
+
+  async function ollamaAbort() {
+    try {
+      const aiEndpointParsed = JSON.parse(aiEndpoint);
+      const host = aiEndpointParsed[0];
+      const port = aiEndpointParsed[1];
+      const urlHost = `${host}:${port}`;
+      const ollama = new Ollama({ host: urlHost });
+      const response = await ollama.abort();
+      console.log('Ollama abort response:', response);
+    } catch (error) {
+      console.error('Error in ollamaAbort:', error);
+    }
+  
+  }
 
   useEffect(() => {
     agentGetProposalsTool();
+    agentGetEpochInformationTool();
   }, []);
 
 
@@ -396,7 +490,7 @@ export const PromptInputInterface: React.FC = () => {
         >
           <List>
             <Typography level="body-md">
-              Agent
+              Agent {epochInfo ? `is currently in epoch ${epochInfo.epoch}. Current Epoch Ends In ${epochInfo.timeLeftInEpoch}` : 'is fetching epoch information...'}
             </Typography>
             <hr />
             {messages.map((msg, index) => (
@@ -466,9 +560,7 @@ export const PromptInputInterface: React.FC = () => {
                 whiteSpace: 'pre-wrap'
               }
             }}
-          />
-          <br />
-          <SelectOllamaModel />
+          />    
           <Button
             variant="outlined"
             color="primary"
@@ -503,7 +595,26 @@ export const PromptInputInterface: React.FC = () => {
           >
             Clear
           </Button>
+          <Button
+            variant="outlined"
+            color="primary"
+            endDecorator={<ClearIcon />}
+            onClick={() => ollamaAbort()}
+            sx={{
+              ml: 1,
+              mt: 1,
+              [`@media (min-width: 400px)`]: {
+                ml: 1,
+                mt: 0
+              },
+              maxHeight: '55px'
+            }}
+          >
+            Aboart
+          </Button>
         </Sheet>
+
+        {/*
         <Sheet
           sx={{
             display: 'flex',
@@ -517,6 +628,7 @@ export const PromptInputInterface: React.FC = () => {
             }
           }}
         >
+          
           <Input
             fullWidth
             variant="outlined"
@@ -545,7 +657,9 @@ export const PromptInputInterface: React.FC = () => {
               }
             }}
           />
+          
         </Sheet>
+        */}
       </Sheet>
     </>
   )
