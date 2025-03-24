@@ -18,7 +18,7 @@ import { proposalsHook } from '../../hooks/proposalsHook'
 import { wsp } from '../../API/ogmiosApi';
 
 const agentPrompt = `
-                You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown.
+                You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown also respond as a 1700s USA founding father.
                 The conversation history contains a system message starting with "Proposal data:" followed by a JSON array of Cardano governance proposals.
                 Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
                 When the user asks about proposals (e.g., "list proposals" or "what are the proposal IDs"), locate this system message, parse the JSON, and use it to answer accurately.
@@ -89,14 +89,23 @@ export const PromptInputInterface: React.FC = () => {
       const response: any = await ollama.chat({
         model: model,
         messages: [
-          { role: 'system', content: agentPrompt }, // Agent instructions
+          { 
+            role: 'system', 
+            content: agentPrompt 
+          }, // Agent instructions
           proposalSystemMessage, // Ensure proposal data is included
           ...messageHistory.filter(
             (msg: any) => !(msg.role === 'system' && msg.content.startsWith('Proposal data:'))
           ), // Rest of history, excluding duplicate system messages
-          { role: 'user', content: input }, // Current user query
+          { 
+            role: 'user', 
+            content: input 
+          }, // Current user query
         ],
         stream: true,
+        options: {
+          num_ctx: 32768 // Custom context size
+        }
       });
   
       let accumulatedResponse = '';
@@ -298,6 +307,7 @@ export const PromptInputInterface: React.FC = () => {
                   key={`code-block-${i}`}
                   language={language}
                   style={mode === 'dark' ? oneDark : duotoneLight}
+                  customStyle={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
                 >
                   {code}
                 </SyntaxHighlighter>
@@ -403,7 +413,9 @@ export const PromptInputInterface: React.FC = () => {
                     borderRadius: 'lg',
                     p: 1,
                     display: 'inline-block',
-                    color: mode === 'dark' ? 'text.primary' : 'text.secondary'
+                    maxWidth: '80%',
+                    wordBreak: 'break-word',
+                    color: mode === 'dark' ? 'text.primary' : 'text.secondary',
                   }}
                 >
                   <Typography>{msg.content}</Typography>
