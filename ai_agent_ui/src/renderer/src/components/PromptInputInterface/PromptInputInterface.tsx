@@ -280,7 +280,7 @@ export const PromptInputInterface: React.FC = () => {
             "deposit": proposal.deposit.ada.lovelace,
             "returnAccount": proposal.returnAccount,
             "metadata": metadata,
-            // "votes": votes,
+            "votes": votes,
             "voteSummary": voteSummary, // Add summary
             "epochStart": proposal.since.epoch,
             "epochEnd": proposal.until.epoch,
