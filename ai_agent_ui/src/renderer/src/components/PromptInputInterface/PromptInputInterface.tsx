@@ -197,21 +197,21 @@ export const PromptInputInterface: React.FC = () => {
             totalVotes: votes.length,
           };
           const proposalParsed = {
-            // "@contxt": proposal["@contxt"],
+            "@contxt": proposal["@contxt"],
             "title": metadata.body.title,
-            // "proposalActionType": proposal.action.type,
-            // "abstract": metadata.body.abstract,
-            // "motivation": metadata.body.motivation,
-            // "rationale": metadata.body.rationale,
-            // "references": metadata.body.references,
+            "proposalActionType": proposal.action.type,
+            "abstract": metadata.body.abstract,
+            "motivation": metadata.body.motivation,
+            "rationale": metadata.body.rationale,
+            "references": metadata.body.references,
             "transactionId": proposal.proposal.transaction.id,
-            // "deposit": proposal.deposit.ada.lovelace,
-            // "returnAccount": proposal.returnAccount,
-            // "metadata": metadata,
+            "deposit": proposal.deposit.ada.lovelace,
+            "returnAccount": proposal.returnAccount,
+            "metadata": metadata,
             // "votes": votes,
-            // "voteSummary": voteSummary, // Add summary
-            // "epochStart": proposal.since.epoch,
-            // "epochEnd": proposal.until.epoch,
+            "voteSummary": voteSummary, // Add summary
+            "epochStart": proposal.since.epoch,
+            "epochEnd": proposal.until.epoch,
           };
           return proposalParsed;
         })
