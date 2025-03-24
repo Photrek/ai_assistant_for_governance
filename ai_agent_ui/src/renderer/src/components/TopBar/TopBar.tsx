@@ -10,13 +10,7 @@ import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectM
 
 export const TopBar = (): JSX.Element => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-
-
   const open = Boolean(anchorEl);
-
-  const handleToggle = () => {
-    setProposalBoxHide(!proposalBoxHide);
-  };
 
   const handleClick = (event: React.MouseEvent<HTMLElement>): void => {
     setAnchorEl(anchorEl ? null : event.currentTarget);
