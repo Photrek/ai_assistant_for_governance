@@ -17,14 +17,25 @@ import brain from '../../../../assets/artificial-intelligence.gif'
 import { proposalsHook } from '../../hooks/proposalsHook'
 import { wsp } from '../../API/ogmiosApi';
 
+const agentPrompt = `
+                You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown.
+                The conversation history contains a system message starting with "Proposal data:" followed by a JSON array of Cardano governance proposals.
+                Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
+                When the user asks about proposals (e.g., "list proposals" or "what are the proposal IDs"), locate this system message, parse the JSON, and use it to answer accurately.
+                For example:
+                - For "list proposals", extract and list the "title" and "transactionId" of each proposal.
+                - For "what are the proposal IDs", return the "transactionId" values.
+                Do not generate fictional data or rely on external knowledge—use only the provided JSON.
+                If the JSON is missing or malformed, respond with an error message.
+              `
 interface Message {
-  role: 'user' | 'assistant' | 'thinking'
-  content: string | React.ReactNode
+  role: 'user' | 'assistant' | 'thinking' | 'system';
+  content: string | React.ReactNode;
 }
 
 export const PromptInputInterface: React.FC = () => {
   const [ messages, setMessages ] = useState<Message[]>([])
-  const [ messageHistory, setMessageHistory ] = useState<Message[]>([])
+  const [messageHistory, setMessageHistory] = useState<Message[]>([]);
   const [ input, setInput ] = useState('')
   const [ model, setModel ]: any = useModel()
   const [ images, setImages ] = useState<string[]>([])
@@ -46,106 +57,99 @@ export const PromptInputInterface: React.FC = () => {
   This is where it all starts 
   -------------------------------------- 
   */
-  async function sendMessage()
-  {
-    if (!input.trim()) return
-
-    const userMessage: Message = { role: 'user', content: input }
-
-    setMessages(
-      (prev) => [
-        ...prev, userMessage
-      ]
-    )
-    setMessageHistory(
-      (prev) => [
-        ...prev, userMessage
-      ]
-    )
-    setInput('')
-
+  async function sendMessage() {
+    if (!input.trim()) return;
+  
+    const userMessage: Message = { role: 'user', content: input };
+  
+    setMessages((prev) => [...prev, userMessage]);
+    setMessageHistory((prev) => [...prev, userMessage]);
+    setInput('');
+  
     setMessages((prev) => [
       ...prev,
-      { role: 'thinking', content: <img src={brain} alt="brain" height="50" /> }
-    ])
-
+      { role: 'thinking', content: <img src={brain} alt="brain" height="50" /> },
+    ]);
+  
     try {
-      console.log('input:', input.toLowerCase().includes('governance proposals'));
-      const isToolRequest =
-           input.toLowerCase().includes('list') 
-        || input.toLowerCase().includes('proposal')
-        || input.toLowerCase().includes('governance proposals')
-
-        || input.toLowerCase().includes('search') 
-        || input.toLowerCase().includes('find')
-
-      console.log('isToolRequest:', isToolRequest)
-
-      if (isToolRequest) {
-        const toolResult = await agentProcess(input)
-        const renderedContent = renderMessageContent(toolResult)
-        console.log("renderedContent: ", renderedContent);
-        setMessages((prev) => [
-          ...prev.filter((item) => item.role !== 'thinking'),
-          { role: 'assistant', content: renderedContent }
-        ])
-        setMessageHistory(
-          (prev) => [
-            ...prev, { role: 'assistant', content: toolResult }
-          ]
-        )
-      } else {
+      console.log("messageHistory", messageHistory);
       const aiEndpointParsed = JSON.parse(aiEndpoint);
       const host = aiEndpointParsed[0];
       const port = aiEndpointParsed[1];
-      let protocol = (port == 443) ? 'https' : 'http';
-      let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
-      const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
-        const response = await ollama.chat({
-          model: model,
-          messages: [
-            {
-              role: 'system',
-              content: `
-              You are an AI agent assisting with Cardano governance proposals. Format responses in Markdown. Use the conversation history and respond to the user's input directly.
-            `
-            },
-            ...messageHistory,
-            { role: 'user', content: input }
-          ],
-          stream: true
-        })
+      const urlHost = `${host}:${port}`;
+      const ollama: any = new Ollama({ host: `${urlHost}` });
+  
+      // Find the system message with proposal data
+      const proposalSystemMessage = messageHistory.find(
+        (msg: any) => msg.role === 'system' && msg.content.startsWith('Proposal data:')
+      ) || { role: 'system', content: 'Proposal data: []' }; // Fallback if none found
+      
+      console.log("Messages sent to Ollama:", messages);
 
-        let accumulatedResponse = ''
-        setMessages((prev) => prev.filter((item) => item.role !== 'thinking'))
-
-        for await (const part of response) {
-          accumulatedResponse += part.message.content
-          const renderedContent = renderMessageContent(accumulatedResponse)
-
-          setMessages((prev) => {
-            const withoutThinking = prev.filter((item) => item.role !== 'thinking')
-            const lastWasAssistant =
-              withoutThinking[withoutThinking.length - 1]?.role === 'assistant'
-
-            if (lastWasAssistant) {
-              return [
-                ...withoutThinking.slice(0, -1),
-                { role: 'assistant', content: renderedContent }
-              ]
-            }
-            return [...withoutThinking, { role: 'assistant', content: renderedContent }]
-          })
-        }
-
-        setMessageHistory((prev) => [...prev, { role: 'assistant', content: accumulatedResponse }])
+      const response: any = await ollama.chat({
+        model: model,
+        messages: [
+          { role: 'system', content: agentPrompt }, // Agent instructions
+          proposalSystemMessage, // Ensure proposal data is included
+          ...messageHistory.filter(
+            (msg: any) => !(msg.role === 'system' && msg.content.startsWith('Proposal data:'))
+          ), // Rest of history, excluding duplicate system messages
+          { role: 'user', content: input }, // Current user query
+        ],
+        stream: true,
+      });
+  
+      let accumulatedResponse = '';
+      setMessages((prev) => prev.filter((item) => item.role !== 'thinking'));
+  
+      for await (const part of response) {
+        accumulatedResponse += part.message.content;
+        const renderedContent = renderMessageContent(accumulatedResponse);
+        setMessages((prev) => {
+          const withoutThinking = prev.filter((item) => item.role !== 'thinking');
+          const lastWasAssistant = withoutThinking[withoutThinking.length - 1]?.role === 'assistant';
+          if (lastWasAssistant) {
+            return [...withoutThinking.slice(0, -1), { role: 'assistant', content: renderedContent }];
+          }
+          return [...withoutThinking, { role: 'assistant', content: renderedContent }];
+        });
       }
+  
+      setMessageHistory((prev) => [...prev, { role: 'assistant', content: accumulatedResponse }]);
     } catch (error) {
-      console.error('Error in sendMessage:', error)
+      console.error('Error in sendMessage:', error);
       setMessages((prev) => [
         ...prev.filter((item) => item.role !== 'thinking'),
-        { role: 'assistant', content: 'Error occurred while processing your request' }
-      ])
+        { role: 'assistant', content: 'Error occurred while processing your request' },
+      ]);
+    }
+  };
+
+    /* 
+  ----------------------------------------------------------------------------  
+  Proccess user input to see if there is anything in it that could be processed by agent tool.
+  ----------------------------------------------------------------------------  
+  */
+  async function agentGetProposalsTool() {
+    try {
+      const fetchedProposals = await getProposals();
+      console.log('fetchedProposals:', fetchedProposals);
+      const isDifferent = JSON.stringify(fetchedProposals) !== JSON.stringify(proposals);
+      console.log('isDifferent:', isDifferent);
+      if (isDifferent) {
+        setProposals(fetchedProposals);
+        const contextContent = JSON.stringify(fetchedProposals, null, 2);
+        setMessageHistory((prev: any) => [
+          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Proposal data:'))),
+          { role: 'system', content: `Proposal data: ${contextContent}` },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch proposals:', error);
+      setMessageHistory((prev: any) => [
+        ...prev,
+        { role: 'system', content: 'Error: Could not fetch proposal data.' },
+      ]);
     }
   }
 
@@ -154,7 +158,7 @@ export const PromptInputInterface: React.FC = () => {
   Function that queries the ledger state for governance proposals
   ----------------------------------------------------------------------------  
   */
-  async function getProposal()
+  async function getProposals()
   {
     const method: string = 'queryLedgerState/governanceProposals';
     const params ={};
@@ -164,7 +168,9 @@ export const PromptInputInterface: React.FC = () => {
       wspRes.onmessage = async (e: any) => {
         try {
           const results = JSON.parse(e.data);
-          const parsedProposals = await parseResults(results.result);
+          const rawProposalData = results.result;
+          const parsedProposals = await parseResults(rawProposalData);
+          console.log('parsedProposals:', parsedProposals);
           resolve(parsedProposals);
         } catch (error) {
           reject(error);
@@ -177,16 +183,37 @@ export const PromptInputInterface: React.FC = () => {
   Function that parses all the metadata from the onchain proposals
   ----------------------------------------------------------------------------  
   */
-  async function parseResults(results: any[]): Promise<Array<{ proposal: any, metadata: any }>>{
-    console.log('results', results);
+  async function parseResults(results: any[]): Promise<Array<{ proposal: any, metadata: any }>> {
     try {
-      const parsedProposals = await Promise.all(
+      const parsedProposals: any = await Promise.all(
         results.map(async (proposal: any) => {
           const metadataUri = proposal.metadata.url;
-          const metadata: any = await loadJsonMetadata(metadataUri);
-          const propInfo: any = { proposal, metadata };
-          console.log('propInfo', propInfo);
-          return propInfo;
+          const metadata = await loadJsonMetadata(metadataUri);
+          const votes = proposal.votes;
+          const voteSummary = {
+            totalYes: votes.filter((v: any) => v.vote === 'yes').length,
+            totalNo: votes.filter((v: any) => v.vote === 'no').length,
+            totalAbstain: votes.filter((v: any) => v.vote === 'abstain').length,
+            totalVotes: votes.length,
+          };
+          const proposalParsed = {
+            // "@contxt": proposal["@contxt"],
+            "title": metadata.body.title,
+            // "proposalActionType": proposal.action.type,
+            // "abstract": metadata.body.abstract,
+            // "motivation": metadata.body.motivation,
+            // "rationale": metadata.body.rationale,
+            // "references": metadata.body.references,
+            "transactionId": proposal.proposal.transaction.id,
+            // "deposit": proposal.deposit.ada.lovelace,
+            // "returnAccount": proposal.returnAccount,
+            // "metadata": metadata,
+            // "votes": votes,
+            // "voteSummary": voteSummary, // Add summary
+            // "epochStart": proposal.since.epoch,
+            // "epochEnd": proposal.until.epoch,
+          };
+          return proposalParsed;
         })
       );
       return parsedProposals;
@@ -194,7 +221,7 @@ export const PromptInputInterface: React.FC = () => {
       console.log('Error parsing results:', error);
       return [];
     }
-  };
+  }
   /* 
   ----------------------------------------------------------------------------  
   Fetches metadata from IPFS or HTTP specified in onchain proposal
@@ -320,108 +347,11 @@ export const PromptInputInterface: React.FC = () => {
   
     return elements.length > 0 ? elements : <Typography level="body-md">{msg}</Typography>;
   };
-  /* 
-  ----------------------------------------------------------------------------  
-  Proccess user input to see if there is anything in it that could be processed by agent tool.
-  ----------------------------------------------------------------------------  
-  */
-  const agentProcess = async (userInput: string): Promise<string> => {
-    const lowercaseInput = userInput.toLowerCase().trim()
-  
-    // Tool detection and execution
-    if 
-    (
-          lowercaseInput.includes('list') 
-      ||  lowercaseInput.includes('proposal')
-      ||  lowercaseInput.includes('governance proposals')
-    )  
-    {
-      const fetchedProposals: any = await getProposal();
-      console.log('fetchedProposals:', fetchedProposals)
-      setProposals(fetchedProposals); // Update state for other uses
-      return availableTools['list_proposals'].execute(fetchedProposals)
-    }
 
-    if 
-    (
-          lowercaseInput.includes('search') 
-      ||  lowercaseInput.includes('find')
-    ) 
-    {
-      return availableTools['web_search'].execute(userInput)
-    }
-  
-    // Default LLM processing with context
-    const aiEndpointParsed = JSON.parse(aiEndpoint);
-    const host = aiEndpointParsed[0];
-    const port = aiEndpointParsed[1];
-    let protocol = (port == 443) ? 'https' : 'http';
-    let urlHost = host + ((protocol == 'https' && port != 443) || (protocol == 'http' && port != 80) ? ':' + port : '');
-    const ollama = new Ollama({ host: `${protocol}://${urlHost}` });
-    const systemPrompt = `You are an AI agent name Lalkul assisting with Cardano governance proposals. You have access to proposal data and can provide detailed information when asked. For general questions, respond conversationally. Format your responses in Markdown for readability.
-  
-                          Available tools:
-                          - **list_proposals**: Lists all proposals with details
-                          - **web_search**: Simulates a web search (placeholder)
-  
-                          Current proposal data is available but will be provided by tools when needed. Respond to the user's input directly.
-                          `
-  
-    const response = await ollama.chat({
-      model: model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messageHistory,
-        { role: 'user', content: userInput }
-      ],
-      stream: false // We'll handle streaming in sendMessage
-    })
-  
-    return response.message.content
-  }
+  useEffect(() => {
+    agentGetProposalsTool();
+  }, []);
 
-  const availableTools = {
-    list_proposals: {
-      description: 'Lists all available proposals with details in Markdown format',
-      execute: (proposalData: any[]) => {
-        console.log("proposalData: ", proposalData);
-        if (!proposalData || proposalData.length === 0) {
-          return 'No proposals available'
-        }
-        const proposalList = proposalData.map((item: any, i: number) => {
-            const p = item.proposal
-            const meta = item.metadata?.body || {}
-            const voteSummary = p.votes.reduce((acc: any, vote: any) => {
-              acc[vote.vote] = (acc[vote.vote] || 0) + 1
-              return acc
-            }, {})
-            return `
-              ### ${i + 1}. ${meta.title || 'Untitled'}  
-              **ID:** \`${p.proposal.transaction.id}\`  
-              **Type:** ${p.action.type}  
-              **Deposit:** ${ (p.deposit.ada.lovelace / 1000000).toLocaleString() } ADA  
-              **Active Period:** Epoch ${p.since.epoch} to ${p.until.epoch}  
-              **Metadata URL:** [${p.metadata.url}](${p.metadata.url})  
-              **Votes:**  
-              - Yes: ${voteSummary.yes || 0}  
-              - No: ${voteSummary.no || 0}  
-              - Abstain: ${voteSummary.abstain || 0}  
-              **Description:** ${meta.abstract || 'No description available'}
-            `
-          })
-          .join('\n\n')
-        return proposalList || 'No proposals found'
-      }
-    },
-    web_search: {
-      description: 'Searches the web for information',
-      execute: (query: string) => `
-        **Web Search:**  
-        Searching web for: *${query}*  
-        *(Note: Full implementation would require API integration)*
-        `
-    }
-  }
 
   useEffect(() => {
     scrollToBottom()
@@ -447,6 +377,7 @@ export const PromptInputInterface: React.FC = () => {
       >
         <Sheet
           sx={{
+            width: '100%',
             flexGrow: 1,
             overflowY: 'auto',
             p: 2,
