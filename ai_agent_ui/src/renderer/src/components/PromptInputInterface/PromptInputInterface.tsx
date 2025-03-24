@@ -76,7 +76,10 @@ export const PromptInputInterface: React.FC = () => {
   
     setMessages((prev) => [
       ...prev,
-      { role: 'thinking', content: <img src={mode === "dark" ? brain_dark : brain} alt="brain" height="50" /> },
+      { 
+        role: 'thinking', 
+        content: <img src={mode === "dark" ? brain_dark : brain} alt="brain" height="50" /> 
+      },
     ]);
   
     try {
