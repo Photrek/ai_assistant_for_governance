@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Sheet, Input, Button, List, ListItem, Typography, Divider } from '@mui/joy'
+import { Sheet, Input, Button, List, ListItem, Typography, Divider, FormControl, FormLabel, FormHelperText } from '@mui/joy'
 import SendIcon from '@mui/icons-material/Send'
 import ClearIcon from '@mui/icons-material/Clear'
 import { useModel } from '../../hooks/useModel'
@@ -16,42 +16,51 @@ import brain from '../../../../assets/artificial-intelligence.gif'
 import brain_dark from '../../../../assets/artificial-intelligence-dark.gif'
 import { proposalsHook } from '../../hooks/proposalsHook'
 import { wsp, getCurrentEpochTime } from '../../API/ogmiosApi';
+import Refresh from '@mui/icons-material/Refresh';
 
-const agentPrompt = `
-                You are an AI agent assisting with Cardano governance proposals, take on the persona of Franklin D. Roosevelt and be a bit snarky and witty.
-                The conversation history contains a system message starting with "Proposal data:" followed by a JSON array of Cardano governance proposals.
-                
-                Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
-                When the user asks about proposals (e.g., "list proposals" or "what are the proposal IDs"), locate this system message, parse the JSON, and use it to answer accurately.
-                Also each proposal will have Epoch start and end time, use this information to answer questions about the current epoch.
-                The conversation history contains a system message starting with "Epoch data:".
-                                
-                For example:
-                - For "list proposals", extract and list the "title" and "transactionId" of each proposal.
-                - For "what are the proposal IDs", return the "transactionId" values.
-                Do not generate fictional data or rely on external knowledge—use only the provided JSON.
 
-                If the JSON is missing or malformed, respond with an error message.
-
-                Make sure you're not outputting any JSON or anything that's not human readable.
-              `
 interface Message {
   role: 'user' | 'assistant' | 'thinking' | 'system';
   content: string | React.ReactNode;
 }
 
 export const PromptInputInterface: React.FC = () => {
-  const [ messages, setMessages ] = useState<Message[]>([])
+
+
+
+  const [ messages, setMessages ] = useState<Message[]>([]);
   const [ messageHistory, setMessageHistory ] = useState<Message[]>([]);
-  const [ input, setInput ] = useState('')
-  const [ model, setModel ]: any = useModel()
-  const [ images, setImages ] = useState<string[]>([])
-  const [ domain, setDomain ] = useState('')
-  const [ aiEndpoint, setAIendpoint ]: any = useAIEndpoint()
-  const [ proposals, setProposals ]: any = proposalsHook()
-  const [ epochInfo, setEpochInfo ] = useState<any>()
-  const { mode, setMode } = useColorScheme()
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [ input, setInput ] = useState('');
+  const [ model, setModel ]: any = useModel();
+  const [ images, setImages ] = useState<string[]>([]);
+  const [ domain, setDomain ] = useState('');
+  const [ aiEndpoint, setAIendpoint ]: any = useAIEndpoint();
+  const [ proposals, setProposals ]: any = proposalsHook();
+  const [ epochInfo, setEpochInfo ] = useState<any>();
+  const { mode, setMode } = useColorScheme();
+  const [ contextSize, setContextSize ] = useState(42000);
+  const [ temp, setTemp ] = useState(0.5);
+  const [ persona , setPersona ] = useState('Franklin D. Roosevelt');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const agentPrompt = `
+  You are an AI agent assisting with Cardano governance proposals, take on the persona of ${persona}.
+  The conversation history contains a system message starting with "Proposal data:" followed by a JSON array of Cardano governance proposals.
+  
+  Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
+  When the user asks about proposals (e.g., "list proposals" or "what are the proposal IDs"), locate this system message, parse the JSON, and use it to answer accurately.
+  Also each proposal will have Epoch start and end time, use this information to answer questions about the current epoch.
+  The conversation history contains a system message starting with "Epoch data:".
+                  
+  For example:
+  - For "list proposals", extract and list the "title" and "transactionId" of each proposal.
+  - For "what are the proposal IDs", return the "transactionId" values.
+  Do not generate fictional data or rely on external knowledge—use only the provided JSON.
+
+  If the JSON is missing or malformed, respond with an error message.
+
+  Make sure you're not outputting any JSON or anything that's not human readable.
+`
+  
   
   function scrollToBottom() 
   {
@@ -90,13 +99,6 @@ export const PromptInputInterface: React.FC = () => {
       const urlHost = `${host}:${port}`;
       const ollama: any = new Ollama({ host: `${urlHost}` });
   
-      // Find the system message with proposal data
-      const proposalSystemMessage = messageHistory.find(
-        (msg: any) => msg.role === 'system' && msg.content.startsWith('Proposal data:')
-      ) || { role: 'system', content: 'Proposal data: []' }; // Fallback if none found
-      
-      console.log("Messages sent to Ollama:", messages);
-
       const response: any = await ollama.chat({
         model: model,
         messages: [
@@ -104,10 +106,7 @@ export const PromptInputInterface: React.FC = () => {
             role: 'system', 
             content: agentPrompt 
           }, // Agent instructions
-          proposalSystemMessage, // Ensure proposal data is included
-          ...messageHistory.filter(
-            (msg: any) => !(msg.role === 'system' && msg.content.startsWith('Proposal data:'))
-          ), // Rest of history, excluding duplicate system messages
+          ...messageHistory,
           { 
             role: 'user', 
             content: input 
@@ -115,8 +114,8 @@ export const PromptInputInterface: React.FC = () => {
         ],
         stream: true,
         options: {
-          num_ctx: 32768, // Custom context size
-          temperature: 0 // Make responses more deterministic
+          num_ctx: contextSize, // Custom context size
+          temperature: temp // Make responses more deterministic
         }
       });
   
@@ -137,12 +136,12 @@ export const PromptInputInterface: React.FC = () => {
       }
   
       setMessageHistory((prev) => [...prev, { role: 'assistant', content: accumulatedResponse }]);
-      console.log("token count", await getConversationTokenCount(messageHistory));
+      // console.log("token count", await getConversationTokenCount(messageHistory));
     } catch (error) {
-      console.error('Error in sendMessage:', error);
+      console.log('Error in sendMessage:', error);
       setMessages((prev) => [
         ...prev.filter((item) => item.role !== 'thinking'),
-        { role: 'assistant', content: 'Error occurred while processing your request' },
+        { role: 'assistant', content: `${error}` },
       ]);
     }
   };
@@ -173,33 +172,8 @@ export const PromptInputInterface: React.FC = () => {
         ...prev,
         { role: 'system', content: 'Error: Could not fetch proposal data.' },
       ]);
-    }
-  }
-
-  async function agentGetEpochInformationTool() {
-    
-    try {
-      const epochTime = await getCurrentEpochTime();
-      console.log('epochTime:', epochTime);
-      const isDifferent = JSON.stringify(epochTime) !== JSON.stringify(epochInfo);
-      console.log('isDifferent:', isDifferent);
-      if (isDifferent) {
-        setEpochInfo(epochTime);
-        const epochContent = JSON.stringify(epochTime, null, 2);
-        setMessageHistory((prev: any) => [
-          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Epoch data:'))),
-          { role: 'system', content: `Epoch data: ${epochContent}` },
-        ]);
-      }
-    } catch (error) {
-      console.error('Failed to fetch Epoch:', error);
-      setMessageHistory((prev: any) => [
-        ...prev,
-        { role: 'system', content: 'Error: Could not fetch epoch data.' },
-      ]);
-    }
-  }
-
+    };
+  };
   /* 
   ----------------------------------------------------------------------------  
   Function that queries the ledger state for governance proposals
@@ -225,6 +199,57 @@ export const PromptInputInterface: React.FC = () => {
       };
     });
   };
+  /* 
+  ----------------------------------------------------------------------------  
+  Function that fetches epoch information and adds it as part of agent history.
+  ----------------------------------------------------------------------------  
+  */
+  async function agentGetEpochInformationTool() {
+    try {
+      const epochTime = await getCurrentEpochTime();
+      console.log('epochTime:', epochTime);
+      const isDifferent = JSON.stringify(epochTime) !== JSON.stringify(epochInfo);
+      console.log('isDifferent:', isDifferent);
+      if (isDifferent) {
+        setEpochInfo(epochTime);
+        const epochContent = JSON.stringify(epochTime, null, 2);
+        setMessageHistory((prev: any) => [
+          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Epoch data:'))),
+          { role: 'system', content: `Epoch data: ${epochContent}` },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch Epoch:', error);
+      setMessageHistory((prev: any) => [
+        ...prev,
+        { role: 'system', content: 'Error: Could not fetch epoch data.' },
+      ]);
+    }
+    setInterval(async () => {
+      try {
+        const epochTime = await getCurrentEpochTime();
+        // console.log('epochTime:', epochTime);
+        const isDifferent = JSON.stringify(epochTime) !== JSON.stringify(epochInfo);
+        // console.log('isDifferent:', isDifferent);
+        if (isDifferent) {
+          setEpochInfo(epochTime);
+          const epochContent = JSON.stringify(epochTime, null, 2);
+          setMessageHistory((prev: any) => [
+            ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Epoch data:'))),
+            { role: 'system', content: `Epoch data: ${epochContent}` },
+          ]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Epoch:', error);
+        setMessageHistory((prev: any) => [
+          ...prev,
+          { role: 'system', content: 'Error: Could not fetch epoch data.' },
+        ]);
+      }
+    }, 25000);
+
+  };
+
   /* 
   ----------------------------------------------------------------------------  
   Function that parses all the metadata from the onchain proposals
@@ -523,7 +548,6 @@ export const PromptInputInterface: React.FC = () => {
             <div ref={messagesEndRef} />
           </List>
         </Sheet>
-
         <Sheet
           sx={{
             display: 'flex',
@@ -614,10 +638,154 @@ export const PromptInputInterface: React.FC = () => {
               maxHeight: '55px'
             }}
           >
-            Aboart
+            Abort
           </Button>
         </Sheet>
-
+        For testing purposes only.
+        <Sheet
+          sx={{
+            display: 'flex',
+            p: 2,
+            bgcolor: mode === 'dark' ? 'background.surface' : 'background.body',
+            borderTop: '1px solid',
+            borderColor: 'neutral.outlinedBorder',
+            flexDirection: 'column',
+            [`@media (min-width: 400px)`]: {
+              flexDirection: 'row'
+            }
+          }}
+        >
+          <FormControl>
+            <FormLabel>Context Size</FormLabel>
+            <Input
+              //fullWidth
+              variant="outlined"
+              size="md"
+              value={contextSize}
+              type="number"
+              onChange={(e) => setContextSize(Number(e.target.value))}
+              onKeyUp={(e) => {
+                if (e.key === 'Enter') {
+                  if (e.shiftKey) {
+                    e.preventDefault()
+                    setContextSize((prevInput) => prevInput)
+                  } else {
+                    setContextSize((prevInput) => prevInput)
+                  }
+                }
+              }}
+              placeholder="Context Size"
+              sx={{
+                flexGrow: 1,
+                [`@media (max-width: 400px)`]: {
+                  mb: 1
+                },
+                '& .MuiInput-input': {
+                  wordWrap: 'break-word',
+                  whiteSpace: 'pre-wrap'
+                }
+              }}
+              
+            />
+            <FormHelperText>If you get RAM errors lower this.</FormHelperText>
+          </FormControl>
+          <FormControl>
+            <FormLabel>Temperature:</FormLabel>
+            <Input
+              //fullWidth
+              variant="outlined"
+              size="md"
+              type="number"
+              value={temp}
+              onChange={(e) => setTemp(Number(e.target.value))}
+              onKeyUp={(e) => {
+                if (e.key === 'Enter') {
+                  if (e.shiftKey) {
+                    e.preventDefault()
+                    setTemp((prevInput) => prevInput)
+                  } else {
+                    setTemp((prevInput) => prevInput)
+                  }
+                }
+              }}
+              placeholder="Temperature"
+              sx={{
+                flexGrow: 1,
+                [`@media (max-width: 400px)`]: {
+                  mb: 1
+                },
+                '& .MuiInput-input': {
+                  wordWrap: 'break-word',
+                  whiteSpace: 'pre-wrap'
+                }
+              }}
+            />
+            <FormHelperText>How creative should the llm be.</FormHelperText>
+          </FormControl>
+          <Button
+            variant="outlined"
+            color="primary"
+            endDecorator={<Refresh />}
+            onClick={() => agentGetProposalsTool()}
+            sx={{
+              top: 25,
+              ml: 0,
+              mt: 0,
+              [`@media (min-width: 400px)`]: {
+                ml: 0,
+                mt: 0
+              },
+              maxHeight: '25px'
+            }}
+          >
+            Reload Proposals
+          </Button>
+          
+        </Sheet>
+        <Sheet
+          sx={{
+            display: 'flex',
+            p: 2,
+            bgcolor: mode === 'dark' ? 'background.surface' : 'background.body',
+            borderTop: '1px solid',
+            borderColor: 'neutral.outlinedBorder',
+            flexDirection: 'column',
+            [`@media (min-width: 400px)`]: {
+              flexDirection: 'row'
+            }
+          }}
+        >
+          <Input
+            fullWidth
+            variant="outlined"
+            size="md"
+            value={persona}
+            onChange={(e) => setPersona(e.target.value)}
+            onKeyUp={(e) => {
+              if (e.key === 'Enter') {
+                if (e.shiftKey) {
+                  e.preventDefault()
+                  setPersona((prevInput) => prevInput + '\n')
+                } else {
+                  setPersona((prevInput) => prevInput + '\n')
+                }
+              }
+            }}
+            placeholder="Persona"
+            sx={{
+              flexGrow: 1,
+              [`@media (max-width: 400px)`]: {
+                mb: 1
+              },
+              '& .MuiInput-input': {
+                wordWrap: 'break-word',
+                whiteSpace: 'pre-wrap'
+              }
+            }}
+          />
+          <br />
+          <FormHelperText>Short description of personality.</FormHelperText>
+        </Sheet>
         {/*
         <Sheet
           sx={{
