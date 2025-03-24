@@ -4,7 +4,7 @@ export const OllamaApi = async ( apiRequest: string, options: {[key: string]: an
   const endpoint = endPoints ? JSON.parse( endPoints ) : ["localhost", "11434"];
   console.log("OllamaApi Endpoint: ", endpoint);
   try {
-    const response = await fetch(`http://${endpoint[0]}:${endpoint[1]}/api/${apiRequest}`, options);
+    const response = await fetch(`https://${endpoint[0]}:${endpoint[1]}/api/${apiRequest}`, options);
     // console.log(" OllamaApi Response: ", response);
     const data: any = await response.json();
     // console.log("ollama api: ", data);
