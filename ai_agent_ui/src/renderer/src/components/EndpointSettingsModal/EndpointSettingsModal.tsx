@@ -17,11 +17,11 @@ export const EndpointSettingsModal: React.FC = () => {
     if (!hostAddress || !portNumber) {
       alert('Please enter both IP address and port number.');
       return;
-    }
+    };
     if (isNaN(Number(portNumber))) {
       alert('Port number must be a number.');
       return;
-    }
+    };
 
     const endpointArray = [hostAddress, portNumber];
     const endpointArrayString = JSON.stringify(endpointArray);
@@ -31,6 +31,12 @@ export const EndpointSettingsModal: React.FC = () => {
     setOgmiosHook(ogmiosHook); // This might need to be adjusted based on how you want to handle or format the Ogmios endpoint
     handleClose(); // Close the modal after saving
   };
+
+  const setDefaultEndPoints = async () => {
+    setAIendpoint(JSON.stringify(["https://ollama.photrek.io", "443"]));
+    setOgmiosHook("https://ogmios1mxummq8u5wt9syq7n6a.mainnet-v6.ogmios-m1.demeter.run");
+  };
+
 
   React.useEffect(() => {
     !aiEndpoint ? setHostAddress('https://ollama.photrek.io') :  setHostAddress(JSON.parse(aiEndpoint)[0]);
@@ -82,6 +88,7 @@ export const EndpointSettingsModal: React.FC = () => {
           <DialogActions>
             <Button onClick={handleClose}>Close</Button>
             <Button onClick={handleSetAIEndPoint}>Save</Button>
+            <Button onClick={setDefaultEndPoints}>Set Defaults</Button>
           </DialogActions>
         </ModalDialog>
       </Modal>
