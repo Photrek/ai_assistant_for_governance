@@ -12,18 +12,27 @@ import 'katex/dist/katex.min.css';
 import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useColorScheme } from '@mui/joy/styles'
 import './PromptInputInterface.css'
-import brain from '../../../../assets/artificial-intelligence.gif'
-import brain_dark from '../../../../assets/artificial-intelligence-dark.gif'
 import { proposalsHook } from '../../hooks/proposalsHook'
 import { wsp, getCurrentEpochTime } from '../../API/ogmiosApi';
+import brain from '../../../../assets/artificial-intelligence.gif'
+import brain_dark from '../../../../assets/artificial-intelligence-dark.gif'
 import Refresh from '@mui/icons-material/Refresh';
 import rehypeRaw from 'rehype-raw';
+
+//*Imports for information for llm to be passed by the agent*//
+import cipdata from "./data/cips.cardano.org.json";
+import lalkul from "./data/lalkul-drep.json";
+import sancho from "./data/sancho.network.json";
+import intersect from "./data/docs.intersectmbo.org.json";
 
 interface Message {
   role: 'user' | 'assistant' | 'thinking' | 'system';
   content: string | React.ReactNode;
 }
-
+interface MessageHistory {
+  role: 'system' | 'user' | 'assistant' | 'thinking';
+  content: string | React.ReactNode;
+}
 export const PromptInputInterface: React.FC = () => {
   const [ messages, setMessages ] = useState<Message[]>([]);
   const [ messageHistory, setMessageHistory ] = useState<Message[]>([]);
@@ -41,13 +50,16 @@ export const PromptInputInterface: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const agentPrompt = `
   You are an AI agent assisting with Cardano governance proposals, take on the persona of ${persona}.
-  The conversation history contains a system message starting with "Proposal data:" followed by a JSON array of Cardano governance proposals.
-  
+
   Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
   When the user asks about proposals (e.g., "list proposals" or "what are the proposal IDs"), locate this system message, parse the JSON, and use it to answer accurately.
   Also each proposal will have Epoch start and end time, use this information to answer questions about the current epoch.
-  The conversation history contains a system message starting with "Epoch data:".
-                  
+  The conversation contains a system message starting with "Epoch data:".
+  The conversation contains a system message starting with "Cip data:".             
+  The conversation contains a system message starting with "Lalkul-drep data:". 
+  The conversation contains a system message starting with "Proposal data:" with governance proposals and theri information.
+  The conversation contains a system message starting with "Sancho data:" that has inromation about doing differnt governance on chain trnsactions.
+
   For example:
   - For "list proposals", extract and list the "title" and "transactionId" of each proposal.
   - For "what are the proposal IDs", return the "transactionId" values.
@@ -66,7 +78,7 @@ export const PromptInputInterface: React.FC = () => {
     }
   }
   
-  /* 
+  /**
   -------------------------------------- 
   This is where it all starts 
   -------------------------------------- 
@@ -143,7 +155,47 @@ export const PromptInputInterface: React.FC = () => {
     }
   };
 
-  /* 
+
+  async function loadData ( data: string = "", dataName: string = "") {
+    setMessageHistory((prev: MessageHistory[]) => [
+      ...prev.filter((msg) => !(msg.role === 'system' && typeof msg.content === 'string' && msg.content.startsWith(`${dataName} data:`))),
+      { role: 'system', content: `${dataName} data: ${data}` },
+    ]);
+  };
+
+   /**
+   * Finds and returns the section of a specific CIP from the content string.
+   * @param cipNumber - The CIP number to search for (e.g., "1", "0001").
+   * @returns The matching CIP section or an error message if not found.
+   */
+  function findCIP(cipNumber: string): string {
+    // Extract the content from the JSON object
+    console.log("looking for cip: ", cipNumber);
+
+    // Split content into sections using "---" delimiter, trim whitespace, and filter out empty sections
+    const cipSections = cipdata.content.split('---')
+      .map(section => section.trim())
+      .filter(section => section);
+
+    // Iterate through each section to find the matching CIP
+    for (const section of cipSections) {
+      const firstLine = section.split('\n')[0]; // Get the first line of the section
+
+      // Check for various CIP title formats
+      if (
+        firstLine.includes(`CIP-${cipNumber}`) ||
+        firstLine.includes(`CIP-${cipNumber.padStart(4, '0')}`) || // Pads with zeros (e.g., "1" -> "0001")
+        firstLine.includes(`#${cipNumber}`)
+      ) {
+        console.log('CIP found:', section);
+        loadData(section, "Cip"); // Return the entire section if a match is found
+      }
+    }
+    // Return error message if no match is found
+    return "CIP not found";
+  };
+
+  /** 
   ----------------------------------------------------------------------------  
   Function that queries the ledger state for governance proposals and adds
   it as part of agent history.
@@ -171,7 +223,7 @@ export const PromptInputInterface: React.FC = () => {
       ]);
     };
   };
-  /* 
+  /**
   ----------------------------------------------------------------------------  
   Function that queries the ledger state for governance proposals
   ----------------------------------------------------------------------------  
@@ -196,7 +248,7 @@ export const PromptInputInterface: React.FC = () => {
       };
     });
   };
-  /* 
+  /**
   ----------------------------------------------------------------------------  
   Function that fetches epoch information and adds it as part of agent history.
   ----------------------------------------------------------------------------  
@@ -244,10 +296,9 @@ export const PromptInputInterface: React.FC = () => {
         ]);
       }
     }, 25000);
-
   };
 
-  /* 
+  /** 
   ----------------------------------------------------------------------------  
   Function that parses all the metadata from the onchain proposals
   ----------------------------------------------------------------------------  
@@ -323,7 +374,7 @@ export const PromptInputInterface: React.FC = () => {
       return null;
     }
   };
-  /* 
+  /** 
   ----------------------------------------------------------------------------  
   Process math equations in text
   ----------------------------------------------------------------------------  
@@ -335,7 +386,7 @@ export const PromptInputInterface: React.FC = () => {
       .replace(/\\(.)/g, '$1'); // Unescapes backslashes if needed
   };
 
-  /* 
+  /**
   ----------------------------------------------------------------------------  
   Renders all markdown content in the chat interface that's been preprocessed
   ----------------------------------------------------------------------------  
@@ -418,7 +469,7 @@ export const PromptInputInterface: React.FC = () => {
   function cleanMessage(msg: string): string {
     return msg.replace(/\n{3,}/g, '\n\n');
   }
-  /* 
+  /**
   ----------------------------------------------------------------------------  
   Test function for caculating current used context tokens to offload into
   REG memory system
@@ -469,15 +520,17 @@ export const PromptInputInterface: React.FC = () => {
       const port = aiEndpointParsed[1];
       const urlHost = `${host}:${port}`;
       const ollama = new Ollama({ host: urlHost });
-      const response = await ollama.abort();
+      const response = ollama.abort();
       console.log('Ollama abort response:', response);
     } catch (error) {
       console.error('Error in ollamaAbort:', error);
-    }
-  
-  }
+    };
+  };
 
   useEffect(() => {
+    loadData(lalkul.content, "lalkul-drep");
+    loadData(sancho.content, "sancho");
+    findCIP('1694');
     agentGetProposalsTool();
     agentGetEpochInformationTool();
   }, []);

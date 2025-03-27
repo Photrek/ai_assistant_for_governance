@@ -38,6 +38,7 @@
     "@mui/icons-material": "^6.2.1",
     "@mui/joy": "^5.0.0-beta.51",
     "ai_agent_client": "file:../ai_agent_api/client/typescript/ai_agent_client.tgz",
+    "axios": "^1.8.4",
     "bip38": "^3.1.1",
     "bip39": "^3.1.0",
     "cbor-x": "^1.6.0",
