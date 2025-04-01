@@ -44,28 +44,27 @@ export const PromptInputInterface: React.FC = () => {
   const [ proposals, setProposals ]: any = proposalsHook();
   const [ epochInfo, setEpochInfo ] = useState<any>();
   const { mode, setMode } = useColorScheme();
-  const [ contextSize, setContextSize ] = useState(42000);
+  const [ contextSize, setContextSize ] = useState(50000);
   const [ temp, setTemp ] = useState(0.5);
   const [ persona , setPersona ] = useState('Franklin D. Roosevelt');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const agentPrompt = `
+  const agentPrompt = ` 
   You are an AI agent assisting with Cardano governance proposals, take on the persona of ${persona}.
 
   Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
   When the user asks about proposals (e.g., "list proposals" or "what are the proposal IDs"), locate this system message, parse the JSON, and use it to answer accurately.
   Also each proposal will have Epoch start and end time, use this information to answer questions about the current epoch.
-  The conversation contains a system message starting with "Epoch data:".
-  The conversation contains a system message starting with "Cip data:".             
-  The conversation contains a system message starting with "Lalkul-drep data:". 
-  The conversation contains a system message starting with "Proposal data:" with governance proposals and theri information.
-  The conversation contains a system message starting with "Sancho data:" that has inromation about doing differnt governance on chain trnsactions.
+  The conversation contains a system message starting with "Epoch data: Which hold infromation about Cardano current Epoch information. Cardano has 432,000 slot per epoch each slot is 1 sec each epoch is aproximetley 5 days long.".
+  The conversation contains a system message starting with "Cip data: Which conatins infromaton about Cardano CIPs".             
+  The conversation contains a system message starting with "Lalkul-drep data: Which contains infromation about the Lalkul Drep.". 
+  The conversation contains a system message starting with "Cardano Governance Proposal data:" which conatins information about Cardano's onchain governance proposals and their information so when asked for it this is where you get the information from.
+  The conversation contains a system message starting with "Sancho data:" that has inromation about doing differnt governance on chain trnsactions and how to generae transactions using cardano-cli.
 
-  For example:
-  - For "list proposals", extract and list the "title" and "transactionId" of each proposal.
-  - For "what are the proposal IDs", return the "transactionId" values.
-  Do not generate fictional data or rely on external knowledge—use only the provided JSON.
+  Make sure you look at all the past messages to get the context of the conversation.
 
   If the JSON is missing or malformed, respond with an error message.
+
+  When providing mathematical expressions, please use LaTeX syntax and wrap inline math with single dollar signs ($) and display math with double dollar signs ($$)..
 
   Make sure you're not outputting any JSON or anything that's not human readable.
 `
@@ -211,8 +210,8 @@ export const PromptInputInterface: React.FC = () => {
         setProposals(fetchedProposals);
         const contextContent = JSON.stringify(fetchedProposals, null, 2);
         setMessageHistory((prev: any) => [
-          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Proposal data:'))),
-          { role: 'system', content: `Proposal data: ${contextContent}` },
+          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Cardano Governance Proposal data:'))),
+          { role: 'system', content: `Cardano Governance Proposal data: ${contextContent}` },
         ]);
       }
     } catch (error) {
@@ -328,7 +327,7 @@ export const PromptInputInterface: React.FC = () => {
             "deposit": proposal.deposit.ada.lovelace,
             "returnAccount": proposal.returnAccount,
             "metadata": metadata,
-            "votes": votes,
+            // "votes": votes,
             "voteSummary": voteSummary, // Add summary
             "epochStart": proposal.since.epoch,
             "epochEnd": proposal.until.epoch,
@@ -347,8 +346,7 @@ export const PromptInputInterface: React.FC = () => {
   Fetches metadata from IPFS or HTTP specified in onchain proposal
   ----------------------------------------------------------------------------  
   */
-  async function loadJsonMetadata(metadataUri: string)
-  {
+  async function loadJsonMetadata(metadataUri: string) {
     let uri = metadataUri.startsWith('ipfs://') 
       ? `https://ipfs.onchainapps.io/ipfs/${metadataUri.slice(7)}` 
       : metadataUri;
@@ -360,54 +358,50 @@ export const PromptInputInterface: React.FC = () => {
         return null;
       }
       const jsonData = await response.json();
-      if (jsonData.body) {
-        for (const key in jsonData.body) {
-          if (typeof jsonData.body[key] === 'string') {
-            jsonData.body[key] = preprocessMath(jsonData.body[key]);
-          }
-        }
-      }
       console.log('Metadata fetched:', jsonData);
       return jsonData;
     } catch (error) {
       console.error('Error loading metadata:', error);
       return null;
     }
-  };
-  /** 
-  ----------------------------------------------------------------------------  
-  Process math equations in text
-  ----------------------------------------------------------------------------  
-  */
-  const preprocessMath = (text: string): string => {
-    return text
-      .replace(/times/g, '\\cdot')
-      .replace(/frac/g, '\\frac')
-      .replace(/\\(.)/g, '$1'); // Unescapes backslashes if needed
-  };
-
+  }
   /**
   ----------------------------------------------------------------------------  
   Renders all markdown content in the chat interface that's been preprocessed
   ----------------------------------------------------------------------------  
   */
   function renderMessageContent(msg: string | undefined): React.ReactNode {
+    // Type guard for non-string input
     if (typeof msg !== 'string') {
       console.warn('Expected msg to be a string, received:', typeof msg);
       return msg as React.ReactNode;
     }
   
-    const parts = msg.split(/(```(\w+)?([\s\S]*?)```|\$\$[\s\S]*?\$\$|(?<!\\)\$(?:(?!\\).)*\$(?<!\\))/);
+    // Helper function to preprocess math content
+    const preprocessMath = (text: string): string => {
+      return text
+        .replace(/times/g, '\\cdot')      // Replace "times" with "\cdot" for multiplication
+        .replace(/frac/g, '\\frac')       // Replace "frac" with "\frac" for fractions
+        .replace(/\\(.)/g, '$1');         // Unescape backslashes
+    };
   
+    // Helper function to clean text by limiting consecutive newlines
+    const cleanMessage = (text: string): string => {
+      return text.replace(/\n{3,}/g, '\n\n');  // Replace 3+ newlines with 2
+    };
+  
+    // Split message into parts: code blocks, block math, inline math, and regular text
+    const parts = msg.split(/(```(\w+)?([\s\S]*?)```|\$\$[\s\S]*?\$\$|(?<!\\)\$(?:(?!\\).)*\$(?<!\\))/);
     const elements: React.ReactNode[] = [];
   
+    // Process each part
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
   
-      if (part && typeof part === 'string') { 
-        if (part.startsWith('```')) { // Code block
-          const language = parts[i + 1] || 'text';
-          const code = parts[i + 2]?.trim() || '';
+      if (part && typeof part === 'string') {
+        if (part.startsWith('```')) { // Handle code blocks
+          const language = parts[i + 1] || 'text'; // Language or default to 'text'
+          const code = parts[i + 2]?.trim() || ''; // Code content
           if (code) {
             elements.push(
               <Sheet key={`code-${i}`} variant="outlined" sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
@@ -422,22 +416,24 @@ export const PromptInputInterface: React.FC = () => {
                 </SyntaxHighlighter>
               </Sheet>
             );
-            i += 2;
+            i += 2; // Skip the captured language and code parts
           }
-        } else if (part.startsWith('$$    ') && part.endsWith('    $$')) { // Block Math
-          const math = part.slice(2, -2).trim();
+        } else if (part.startsWith('$$  ') && part.endsWith('  $$')) { // Handle block math
+          const math = part.slice(2, -2).trim();         // Extract math content
+          const mathProcessed = preprocessMath(math);    // Preprocess math
           elements.push(
             <Typography key={`math-${i}`} level="body-md">
-              <BlockMath>{math}</BlockMath>
+              <BlockMath>{mathProcessed}</BlockMath>
             </Typography>
           );
-        } else {  // Regular text or inline math
-          const cleanedPart = cleanMessage(part);
-          const inlineMathRegex = /\$(.*?)\$/g;
+        } else { // Handle regular text or inline math
+          const cleanedPart = cleanMessage(part);        // Clean the text
+          const inlineMathRegex = /\$(.*?)\$/g;          // Regex for inline math
           let match: RegExpExecArray | null;
           let lastIndex = 0;
           const segments: string[] = [];
-          
+  
+          // Split part into text and inline math segments
           while ((match = inlineMathRegex.exec(cleanedPart))) {
             if (match.index > lastIndex) {
               segments.push(cleanedPart.slice(lastIndex, match.index));
@@ -449,9 +445,12 @@ export const PromptInputInterface: React.FC = () => {
             segments.push(cleanedPart.slice(lastIndex));
           }
   
+          // Render segments
           const renderedSegments = segments.map((segment, idx) => {
             if (segment.startsWith('$') && segment.endsWith('$')) {
-              return <InlineMath key={`inline-math-${idx}`}>{segment.slice(1, -1)}</InlineMath>;
+              const math = segment.slice(1, -1);         // Extract inline math content
+              const mathProcessed = preprocessMath(math); // Preprocess math
+              return <InlineMath key={`inline-math-${idx}`}>{mathProcessed}</InlineMath>;
             }
             return <Markdown rehypePlugins={[rehypeRaw]} key={`text-${idx}`}>{segment}</Markdown>;
           });
@@ -464,10 +463,8 @@ export const PromptInputInterface: React.FC = () => {
         }
       }
     }
+    // Return rendered elements or fallback to plain text
     return elements.length > 0 ? elements : <Typography level="body-md">{msg}</Typography>;
-  }
-  function cleanMessage(msg: string): string {
-    return msg.replace(/\n{3,}/g, '\n\n');
   }
   /**
   ----------------------------------------------------------------------------  
