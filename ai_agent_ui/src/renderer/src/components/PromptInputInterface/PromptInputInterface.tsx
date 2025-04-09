@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Sheet, Input, Button, List, ListItem, Typography, Divider, FormControl, FormLabel, FormHelperText } from '@mui/joy'
+import { Sheet, Input, Button, List, ListItem, Typography, Divider, FormControl, FormLabel, FormHelperText, Tooltip } from '@mui/joy'
 import SendIcon from '@mui/icons-material/Send'
 import ClearIcon from '@mui/icons-material/Clear'
 import { useModel } from '../../hooks/useModel'
@@ -18,6 +18,7 @@ import brain from '../../../../assets/artificial-intelligence.gif'
 import brain_dark from '../../../../assets/artificial-intelligence-dark.gif'
 import Refresh from '@mui/icons-material/Refresh';
 import rehypeRaw from 'rehype-raw';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 //*Imports for information for llm to be passed by the agent*//
 import cipdata from "./data/cips.cardano.org.json";
@@ -406,7 +407,7 @@ export const PromptInputInterface: React.FC = () => {
             elements.push(
               <Sheet key={`code-${i}`} variant="outlined" sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
                 <Divider />
-                <Typography level="body-sm" sx={{ fontWeight: 'bold' }}>AI code block:</Typography>
+                <Typography level="body-sm" sx={{ fontWeight: 'bold' }}>Code block:</Typography>
                 <SyntaxHighlighter
                   language={language}
                   style={mode === 'dark' ? oneDark : duotoneLight}
@@ -590,6 +591,10 @@ export const PromptInputInterface: React.FC = () => {
                 >
                   <Typography>{msg.content}</Typography>
                 </Sheet>
+                {/* Add CopyTextButton for string content */}
+                {typeof msg.content === 'string' && (
+                  <CopyTextButton textToCopy={msg.content} />
+                )}                
               </ListItem>
             ))}
             <div ref={messagesEndRef} />
@@ -883,3 +888,40 @@ export const PromptInputInterface: React.FC = () => {
     </>
   )
 }
+/*
+----------------------------------------------------------------------------
+Copy text to clipboard component
+----------------------------------------------------------------------------
+*/
+interface CopyTextButtonProps {
+  textToCopy: string; // The text you want to copy
+}
+
+const CopyTextButton: React.FC<CopyTextButtonProps> = ({ textToCopy }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      // Reset the "Copied" state after 2 seconds
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  return (
+    <Tooltip title={copied ? 'Copied!' : 'Copy to clipboard'} variant="soft">
+      <Button
+        variant="outlined"
+        color="neutral"
+        startDecorator={<ContentCopyIcon />}
+        onClick={handleCopy}
+        sx={{ m: 0, pr: 0 }}
+      >
+        {/*copied ? 'Copied' : 'Copy'*/}
+      </Button>
+    </Tooltip>
+  );
+};
