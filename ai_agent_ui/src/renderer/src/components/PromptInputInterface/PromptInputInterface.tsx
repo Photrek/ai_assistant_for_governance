@@ -49,26 +49,30 @@ export const PromptInputInterface: React.FC = () => {
   const [ temp, setTemp ] = useState(0.5);
   const [ persona , setPersona ] = useState('Franklin D. Roosevelt');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
   const agentPrompt = ` 
   You are an AI agent assisting with Cardano governance proposals, take on the persona of ${persona}.
 
   Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
-  When the user asks about proposals (e.g., "list proposals" or "what are the proposal IDs"), locate this system message, parse the JSON, and use it to answer accurately.
-  Also each proposal will have Epoch start and end time, use this information to answer questions about the current epoch.
-  The conversation contains a system message starting with "Epoch data: Which hold infromation about Cardano current Epoch information. Cardano has 432,000 slot per epoch each slot is 1 sec each epoch is aproximetley 5 days long.".
-  The conversation contains a system message starting with "Cip data: Which conatins infromaton about Cardano CIPs".             
-  The conversation contains a system message starting with "Lalkul-drep data: Which contains infromation about the Lalkul Drep.". 
-  The conversation contains a system message starting with "Cardano Governance Proposal data:" which conatins information about Cardano's onchain governance proposals and their information so when asked for it this is where you get the information from.
-  The conversation contains a system message starting with "Sancho data:" that has inromation about doing differnt governance on chain trnsactions and how to generae transactions using cardano-cli.
+  When the user asks about Cardano governance proposals in any form (e.g., "list proposals", "show me current proposals", "what are the Cardano proposals?", "display governance proposals", "tell me about active proposals", or "what are the proposal IDs"), locate the system message starting with "Cardano Governance Proposals:" in the conversation history, parse the JSON, and use it to answer accurately. For example:
+  - If the user asks to "list proposals", "show me current proposals", or similar queries asking for a list, extract and list the "title" and "transactionId" of each proposal in a human-readable format. Ensure you only include proposals that are currently live (i.e., the current epoch is between "epochStart" and "epochEnd" as of the current date, ${new Date().toISOString().split('T')[0]}). Use the "Current Epoch data:" system message to determine the current epoch.
+  - If the user asks "what are the proposal IDs", return only the "transactionId" values of live proposals.
+  - If the user asks for details about a specific proposal (e.g., "tell me about proposal with ID <transactionId>"), provide all available fields for that proposal, such as "title", "abstract", "votes", "epochStart", and "epochEnd", regardless of its status.
+  Also, each proposal will have Epoch start and end time, so use this information to answer questions about the current epoch if relevant, such as filtering proposals that are active in the current epoch when asked for "current proposals".
+  The conversation contains a system message starting with "Current Epoch data: Which holds information about Cardano current Epoch information. Cardano has 432000 slots per epoch each slot is 1 sec long and epochs are approximately 5 days long.".
+  The conversation contains a system message starting with "Cip data: Which contains information about Cardano CIPs".             
+  The conversation contains a system message starting with "Lalkul-drep data: Which contains information about the Lalkul Drep.". 
+  The conversation contains a system message starting with "Cardano Governance Proposals:" which contains information about Cardano's onchain governance proposals and their details, so when asked for proposal-related information, this is where you get the data from.
+  The conversation contains a system message starting with "Governance Technical Data:" that has information about doing different governance on-chain transactions and how to generate transactions using cardano-cli.
 
   Make sure you look at all the past messages to get the context of the conversation.
 
-  If the JSON is missing or malformed, respond with an error message.
+  If the JSON is missing or malformed, respond with an error message like: "Error: Could not retrieve proposal data. The data might be missing or malformed. Please try again later."
 
-  When providing mathematical expressions, please use LaTeX syntax and wrap inline math with single dollar signs ($) and display math with double dollar signs ($$)..
+  When providing mathematical expressions, please use LaTeX syntax and wrap inline math with single dollar signs ($) and display math with double dollar signs ($$).
 
   Make sure you're not outputting any JSON or anything that's not human readable.
-`
+  `;
   
   
   function scrollToBottom() 
@@ -211,8 +215,8 @@ export const PromptInputInterface: React.FC = () => {
         setProposals(fetchedProposals);
         const contextContent = JSON.stringify(fetchedProposals, null, 2);
         setMessageHistory((prev: any) => [
-          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Cardano Governance Proposal data:'))),
-          { role: 'system', content: `Cardano Governance Proposal data: ${contextContent}` },
+          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Cardano Governance Proposals:'))),
+          { role: 'system', content: `Cardano Governance Proposals: ${contextContent}` },
         ]);
       }
     } catch (error) {
@@ -263,8 +267,8 @@ export const PromptInputInterface: React.FC = () => {
         setEpochInfo(epochTime);
         const epochContent = JSON.stringify(epochTime, null, 2);
         setMessageHistory((prev: any) => [
-          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Epoch data:'))),
-          { role: 'system', content: `Epoch data: ${epochContent}` },
+          ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Current Epoch data:'))),
+          { role: 'system', content: `Current Epoch data: ${epochContent}` },
         ]);
       }
     } catch (error) {
@@ -284,8 +288,8 @@ export const PromptInputInterface: React.FC = () => {
           setEpochInfo(epochTime);
           const epochContent = JSON.stringify(epochTime, null, 2);
           setMessageHistory((prev: any) => [
-            ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Epoch data:'))),
-            { role: 'system', content: `Epoch data: ${epochContent}` },
+            ...prev.filter((msg) => !(msg.role === 'system' && msg.content.startsWith('Current Epoch data:'))),
+            { role: 'system', content: `Current Epoch data: ${epochContent}` },
           ]);
         }
       } catch (error) {
@@ -592,7 +596,7 @@ export const PromptInputInterface: React.FC = () => {
                   <Typography>{msg.content}</Typography>
                 </Sheet>
                 {/* Add CopyTextButton for string content */}
-                {typeof msg.content === 'string' && (
+                {msg.role !== 'thinking' && (
                   <CopyTextButton textToCopy={msg.content} />
                 )}                
               </ListItem>
@@ -894,7 +898,7 @@ Copy text to clipboard component
 ----------------------------------------------------------------------------
 */
 interface CopyTextButtonProps {
-  textToCopy: string; // The text you want to copy
+  textToCopy: any; // The text you want to copy
 }
 
 const CopyTextButton: React.FC<CopyTextButtonProps> = ({ textToCopy }) => {
