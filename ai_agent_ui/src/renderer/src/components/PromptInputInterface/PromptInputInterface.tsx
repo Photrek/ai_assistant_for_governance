@@ -45,7 +45,7 @@ export const PromptInputInterface: React.FC = () => {
   const [ proposals, setProposals ]: any = proposalsHook();
   const [ epochInfo, setEpochInfo ] = useState<any>();
   const { mode, setMode } = useColorScheme();
-  const [ contextSize, setContextSize ] = useState(50000);
+  const [ contextSize, setContextSize ] = useState(65000);
   const [ temp, setTemp ] = useState(0.5);
   const [ persona , setPersona ] = useState('Franklin D. Roosevelt');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,15 +54,19 @@ export const PromptInputInterface: React.FC = () => {
   You are an AI agent assisting with Cardano governance proposals, take on the persona of ${persona}.
 
   Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
-  When the user asks about Cardano governance proposals in any form (e.g., "list proposals", "show me current proposals", "what are the Cardano proposals?", "display governance proposals", "tell me about active proposals", or "what are the proposal IDs"), locate the system message starting with "Cardano Governance Proposals:" in the conversation history, parse the JSON, and use it to answer accurately. For example:
-  - If the user asks to "list proposals", "show me current proposals", or similar queries asking for a list, extract and list the "title" and "transactionId" of each proposal in a human-readable format. Ensure you only include proposals that are currently live (i.e., the current epoch is between "epochStart" and "epochEnd" as of the current date, ${new Date().toISOString().split('T')[0]}). Use the "Current Epoch data:" system message to determine the current epoch.
+  When the user asks about Cardano governance proposals in any form (e.g., "list proposals", "show me current proposals", "what are the Cardano proposals?", "display governance proposals", "tell me about active proposals", or "what are the proposal IDs"), 
+  refer to the system message containing Cardano governance proposals in the conversation history and use it to answer accurately. For example:
+  - If the user asks to "list proposals", "show me current proposals", or similar queries asking for a list, extract and list the "title" and "transactionId" of each proposal in a human-readable format. 
+  Ensure you only include proposals that are currently live (i.e., the current epoch is between "epochStart" and "epochEnd" as of the current date, ${new Date().toISOString().split('T')[0]}). 
+  Use the "Current Epoch data:" system message to determine the current epoch.
   - If the user asks "what are the proposal IDs", return only the "transactionId" values of live proposals.
   - If the user asks for details about a specific proposal (e.g., "tell me about proposal with ID <transactionId>"), provide all available fields for that proposal, such as "title", "abstract", "votes", "epochStart", and "epochEnd", regardless of its status.
   Also, each proposal will have Epoch start and end time, so use this information to answer questions about the current epoch if relevant, such as filtering proposals that are active in the current epoch when asked for "current proposals".
+  The conversation contains a system message starting with "Cardano Governance Proposals:" which contains information about Cardano's onchain governance proposals and their details, so when asked for proposal-related information, this is where you get the data from.
   The conversation contains a system message starting with "Current Epoch data: Which holds information about Cardano current Epoch information. Cardano has 432000 slots per epoch each slot is 1 sec long and epochs are approximately 5 days long.".
   The conversation contains a system message starting with "Cip data: Which contains information about Cardano CIPs".             
   The conversation contains a system message starting with "Lalkul-drep data: Which contains information about the Lalkul Drep.". 
-  The conversation contains a system message starting with "Cardano Governance Proposals:" which contains information about Cardano's onchain governance proposals and their details, so when asked for proposal-related information, this is where you get the data from.
+ 
   The conversation contains a system message starting with "Governance Technical Data:" that has information about doing different governance on-chain transactions and how to generate transactions using cardano-cli.
 
   Make sure you look at all the past messages to get the context of the conversation.
@@ -332,7 +336,7 @@ export const PromptInputInterface: React.FC = () => {
             "deposit": proposal.deposit.ada.lovelace,
             "returnAccount": proposal.returnAccount,
             "metadata": metadata,
-            // "votes": votes,
+             "votes": votes,
             "voteSummary": voteSummary, // Add summary
             "epochStart": proposal.since.epoch,
             "epochEnd": proposal.until.epoch,
@@ -530,11 +534,11 @@ export const PromptInputInterface: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData(lalkul.content, "lalkul-drep");
-    loadData(sancho.content, "sancho");
-    findCIP('1694');
     agentGetProposalsTool();
     agentGetEpochInformationTool();
+    loadData(lalkul.content, "lalkul-drep");
+    // loadData(sancho.content, "sancho");
+    // findCIP('1694');
   }, []);
 
 
