@@ -25,6 +25,7 @@ import cipdata from "./data/cips.cardano.org.json";
 import lalkul from "./data/lalkul-drep.json";
 import sancho from "./data/sancho.network.json";
 import intersect from "./data/docs.intersectmbo.org.json";
+import LalkulWhitepaper from "./data/lalkulWhitepaper.json";
 
 interface Message {
   role: 'user' | 'assistant' | 'thinking' | 'system';
@@ -336,7 +337,7 @@ export const PromptInputInterface: React.FC = () => {
             "deposit": proposal.deposit.ada.lovelace,
             "returnAccount": proposal.returnAccount,
             "metadata": metadata,
-             "votes": votes,
+            "votes": votes,
             "voteSummary": voteSummary, // Add summary
             "epochStart": proposal.since.epoch,
             "epochEnd": proposal.until.epoch,
@@ -536,7 +537,8 @@ export const PromptInputInterface: React.FC = () => {
   useEffect(() => {
     agentGetProposalsTool();
     agentGetEpochInformationTool();
-    loadData(lalkul.content, "lalkul-drep");
+    // loadData(lalkul.content, "lalkul-drep");
+    loadData(JSON.stringify(LalkulWhitepaper, null, 2), "lalkul-drep");
     // loadData(sancho.content, "sancho");
     // findCIP('1694');
   }, []);
