@@ -38,7 +38,7 @@ export const OnChainProposalComponent: React.FC = () => {
         results.map(async (proposal: any) => {
           const metadataUri = proposal.metadata.url;
           const metadata: any = await loadJsonMetadata(metadataUri);
-          const propInfo: any = { proposal, metadata };
+          const propInfo: any = { proposal, metadata: metadata === "error" ? [] : metadata };
           console.log('propInfo', propInfo);
           return propInfo;
         })
@@ -67,7 +67,7 @@ export const OnChainProposalComponent: React.FC = () => {
       const response = await fetch(uri);
       if (!response.ok) {
         console.warn('Failed to fetch metadata:', response.statusText);
-        return [];
+        return "error";
       }
       const jsonData = await response.json();
       if (jsonData.body) {
@@ -81,7 +81,7 @@ export const OnChainProposalComponent: React.FC = () => {
       return jsonData;
     } catch (error) {
       console.error('Error loading metadata:', error);
-      return [];
+      return "error";
     }
   };
 
