@@ -67,7 +67,7 @@ export const OnChainProposalComponent: React.FC = () => {
       const response = await fetch(uri);
       if (!response.ok) {
         console.warn('Failed to fetch metadata:', response.statusText);
-        return null;
+        return [];
       }
       const jsonData = await response.json();
       if (jsonData.body) {
@@ -81,7 +81,7 @@ export const OnChainProposalComponent: React.FC = () => {
       return jsonData;
     } catch (error) {
       console.error('Error loading metadata:', error);
-      return null;
+      return [];
     }
   };
 

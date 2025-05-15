@@ -50,7 +50,8 @@ export const PromptInputInterface: React.FC = () => {
   const [ temp, setTemp ] = useState(0.5);
   const [ persona , setPersona ] = useState('Franklin D. Roosevelt');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+  const [ loadingProposals, setLoadingProposals ] = useState(false);
+
   const agentPrompt = ` 
   You are an AI agent assisting with Cardano governance proposals, take on the persona of ${persona}.
 
@@ -211,6 +212,7 @@ export const PromptInputInterface: React.FC = () => {
   ----------------------------------------------------------------------------  
   */
   async function agentGetProposalsTool() {
+    setLoadingProposals(true);
     try {
       const fetchedProposals = await getProposals();
       console.log('fetchedProposals:', fetchedProposals);
@@ -224,6 +226,7 @@ export const PromptInputInterface: React.FC = () => {
           { role: 'system', content: `Cardano Governance Proposals: ${contextContent}` },
         ]);
       }
+      setLoadingProposals(false);
     } catch (error) {
       console.error('Failed to fetch proposals:', error);
       setMessageHistory((prev: any) => [
@@ -313,9 +316,10 @@ export const PromptInputInterface: React.FC = () => {
   ----------------------------------------------------------------------------  
   */
   async function parseResults(results: any[]): Promise<Array<{ proposal: any, metadata: any }>> {
-    try {
+    //try {
       const parsedProposals: any = await Promise.all(
         results.map(async (proposal: any) => {
+          let proposalParsed = {}
           const metadataUri = proposal.metadata.url;
           const metadata = await loadJsonMetadata(metadataUri);
           const votes = proposal.votes;
@@ -325,7 +329,7 @@ export const PromptInputInterface: React.FC = () => {
             totalAbstain: votes.filter((v: any) => v.vote === 'abstain').length,
             totalVotes: votes.length,
           };
-          const proposalParsed = {
+          metadata !== "error" ? proposalParsed = {
             "@contxt": proposal["@contxt"],
             "title": metadata.body.title,
             "proposalActionType": proposal.action.type,
@@ -341,15 +345,32 @@ export const PromptInputInterface: React.FC = () => {
             "voteSummary": voteSummary, // Add summary
             "epochStart": proposal.since.epoch,
             "epochEnd": proposal.until.epoch,
-          };
+          } :
+          proposalParsed = {
+            "@contxt": proposal["@contxt"],
+            "title": "unavailable",
+            "proposalActionType": proposal.action.type,
+            "abstract": "unavailable",
+            "motivation":"unavailable",
+            "rationale": "unavailable",
+            "references": "unavailable",
+            "transactionId": proposal.proposal.transaction.id,
+            "deposit": proposal.deposit.ada.lovelace,
+            "returnAccount": proposal.returnAccount,
+            "metadata": "unavailable",
+            "votes": votes,
+            "voteSummary": voteSummary, // Add summary
+            "epochStart": proposal.since.epoch,
+            "epochEnd": proposal.until.epoch,
+          }
           return proposalParsed;
         })
       );
       return parsedProposals;
-    } catch (error) {
-      console.log('Error parsing results:', error);
-      return [];
-    }
+    //} catch (error) {
+    //  console.log('Error parsing results:', error);
+    //  return [];
+    //}
   }
   /* 
   ----------------------------------------------------------------------------  
@@ -365,14 +386,14 @@ export const PromptInputInterface: React.FC = () => {
       const response = await fetch(uri);
       if (!response.ok) {
         console.warn('Failed to fetch metadata:', response.statusText);
-        return null;
+        return "error";
       }
       const jsonData = await response.json();
       console.log('Metadata fetched:', jsonData);
       return jsonData;
     } catch (error) {
       console.error('Error loading metadata:', error);
-      return null;
+      return "error";
     }
   }
   /**
@@ -567,7 +588,8 @@ export const PromptInputInterface: React.FC = () => {
         }}
       >
         <Typography level="body-md" sx={{m: 1}}>
-          Agent {epochInfo ? `is currently in epoch ${epochInfo.epoch}. Current Epoch Ends In ${epochInfo.timeLeftInEpoch}` : 'is fetching epoch information...'}
+          Agent {epochInfo ? `is currently in epoch ${epochInfo.epoch}. Current Epoch Ends In ${epochInfo.timeLeftInEpoch}` : 'is fetching epoch information...'} <br />
+          {loadingProposals === true && "Loading Proposals" }
         </Typography>
         <hr />
         <Sheet
