@@ -1,43 +1,33 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  Sheet,
-  Input,
-  Button,
-  List,
-  ListItem,
-  Typography,
-  Divider,
-  FormControl,
-  FormLabel,
-  FormHelperText,
-  Tooltip,
-} from '@mui/joy';
-import SendIcon from '@mui/icons-material/Send';
-import ClearIcon from '@mui/icons-material/Clear';
-import { useModel } from '../../hooks/useModel';
+import React, { useState, useRef, useEffect } from 'react'
+import { Sheet, Input, Button, List, ListItem, Typography, Divider, FormControl, FormLabel, FormHelperText, Tooltip } from '@mui/joy'
+import SendIcon from '@mui/icons-material/Send'
+import ClearIcon from '@mui/icons-material/Clear'
+import { useModel } from '../../hooks/useModel'
 import { Ollama } from 'ollama/browser';
-import { useAIEndpoint } from '../../hooks/useEndpointHook';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import Markdown from 'react-markdown';
+import { useAIEndpoint } from '../../hooks/useEndpointHook'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import Markdown from 'react-markdown'
 import { BlockMath, InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
-import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { useColorScheme } from '@mui/joy/styles';
-import './PromptInputInterface.css';
-import { proposalsHook } from '../../hooks/proposalsHook';
+import { duotoneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useColorScheme } from '@mui/joy/styles'
+import './PromptInputInterface.css'
+import { proposalsHook } from '../../hooks/proposalsHook'
 import { wsp, getCurrentEpochTime } from '../../API/ogmiosApi';
-import brain from '../../../../assets/artificial-intelligence.gif';
-import brain_dark from '../../../../assets/artificial-intelligence-dark.gif';
+import brain from '../../../../assets/artificial-intelligence.gif'
+import brain_dark from '../../../../assets/artificial-intelligence-dark.gif'
 import Refresh from '@mui/icons-material/Refresh';
 import rehypeRaw from 'rehype-raw';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useAiApiKeyhook, useAiClientHook } from '../../hooks/useEndpointHook';
 import { sendMessageOpenAi } from './OpenAIInputComponent';
-import cipdata from './data/cips.cardano.org.json';
-import lalkul from './data/lalkul-drep.json';
-import sancho from './data/sancho.network.json';
-import intersect from './data/docs.intersectmbo.org.json';
-import LalkulWhitepaper from './data/lalkulWhitepaper.json';
+
+//*Imports for information for llm to be passed by the agent*//
+import cipdata from "./data/cips.cardano.org.json";
+import lalkul from "./data/lalkul-drep.json";
+import sancho from "./data/sancho.network.json";
+import intersect from "./data/docs.intersectmbo.org.json";
+import LalkulWhitepaper from "./data/lalkulWhitepaper.json";
 
 export interface Message {
   role: 'user' | 'assistant' | 'thinking' | 'system';
@@ -47,28 +37,28 @@ export interface MessageHistory {
   role: 'system' | 'user' | 'assistant' | 'thinking';
   content: string | React.ReactNode;
 }
-
 export const PromptInputInterface: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [messageHistory, setMessageHistory] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [model, setModel]: any = useModel();
-  const [images, setImages] = useState<string[]>([]);
-  const [domain, setDomain] = useState('');
-  const [aiEndpoint, setAIendpoint]: any = useAIEndpoint();
-  const [proposals, setProposals]: any = proposalsHook();
-  const [epochInfo, setEpochInfo] = useState<any>();
+  const [ messages, setMessages ] = useState<Message[]>([]);
+  const [ messageHistory, setMessageHistory ] = useState<Message[]>([]);
+  const [ input, setInput ] = useState('');
+  const [ model, setModel ]: any = useModel();
+  const [ images, setImages ] = useState<string[]>([]);
+  const [ domain, setDomain ] = useState('');
+  const [ aiEndpoint, setAIendpoint ]: any = useAIEndpoint();
+  const [ proposals, setProposals ]: any = proposalsHook();
+  const [ epochInfo, setEpochInfo ] = useState<any>();
   const { mode, setMode } = useColorScheme();
-  const [contextSize, setContextSize] = useState(65000);
-  const [temp, setTemp] = useState(0.5);
-  const [persona, setPersona] = useState('Franklin D. Roosevelt');
+  const [ contextSize, setContextSize ] = useState(65000);
+  const [ temp, setTemp ] = useState(0.5);
+  const [ persona , setPersona ] = useState('Franklin D. Roosevelt');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [loadingProposals, setLoadingProposals] = useState(false);
-  const [aiClinet, setAiClient] = useAiClientHook<'ollama' | 'chatgpt' | 'grok'>();
-  const [aiApiHook, setAiApiHook] = useAiApiKeyhook<string>();
+  const [ loadingProposals, setLoadingProposals ] = useState(false);
+  const [ aiClinet, setAiClient ] = useAiClientHook<'ollama' | 'chatgpt' | 'grok'>();
+  const [ aiApiHook, setAiApiHook ] = useAiApiKeyhook<string>();
 
   const agentPrompt = ` 
   You are an AI agent assisting with Cardano governance proposals, take on the persona of ${persona}.
+
   Each proposal includes fields like "title", "transactionId", "abstract", "votes", "epochStart", and "epochEnd".
   When the user asks about Cardano governance proposals in any form (e.g., "list proposals", "show me current proposals", "what are the Cardano proposals?", "display governance proposals", "tell me about active proposals", or "what are the proposal IDs"), 
   refer to the system message containing Cardano governance proposals in the conversation history and use it to answer accurately. For example:
@@ -82,61 +72,79 @@ export const PromptInputInterface: React.FC = () => {
   The conversation contains a system message starting with "Current Epoch data: Which holds information about Cardano current Epoch information. Cardano has 432000 slots per epoch each slot is 1 sec long and epochs are approximately 5 days long.".
   The conversation contains a system message starting with "Cip data: Which contains information about Cardano CIPs".             
   The conversation contains a system message starting with "Lalkul-drep data: Which contains information about the Lalkul Drep.". 
+ 
   The conversation contains a system message starting with "Governance Technical Data:" that has information about doing different governance on-chain transactions and how to generate transactions using cardano-cli.
+
   Make sure you look at all the past messages to get the context of the conversation.
+
   If the JSON is missing or malformed, respond with an error message like: "Error: Could not retrieve proposal data. The data might be missing or malformed. Please try again later."
+
   When providing mathematical expressions, please use LaTeX syntax and wrap inline math with single dollar signs ($) and display math with double dollar signs ($$).
+
   Make sure you're not outputting any JSON or anything that's not human readable.
   `;
-
-  function scrollToBottom() {
+  
+  
+  function scrollToBottom() 
+  {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }
-
+  
+  /**
+  -------------------------------------- 
+  This is where it all starts 
+  -------------------------------------- 
+  */
   const sendMessageOllama = async () => {
     if (!input.trim()) return;
-
+  
     const userMessage: Message = { role: 'user', content: input };
-
+  
     setMessages((prev) => [...prev, userMessage]);
     setMessageHistory((prev) => [...prev, userMessage]);
     setInput('');
-
+  
     setMessages((prev) => [
       ...prev,
-      {
-        role: 'thinking',
-        content: <img src={mode === 'dark' ? brain_dark : brain} alt='brain' height='50' />,
+      { 
+        role: 'thinking', 
+        content: <img src={mode === "dark" ? brain_dark : brain} alt="brain" height="50" /> 
       },
     ]);
-
+  
     try {
-      console.log('messageHistory', messageHistory);
+      console.log("messageHistory", messageHistory);
       const aiEndpointParsed = JSON.parse(aiEndpoint);
       const host = aiEndpointParsed[0];
       const port = aiEndpointParsed[1];
       const urlHost = `${host}:${port}`;
       const ollama: any = new Ollama({ host: `${urlHost}` });
-
+  
       const response: any = await ollama.chat({
         model: model,
         messages: [
-          { role: 'system', content: agentPrompt }, // Agent instructions
+          { 
+            role: 'system', 
+            content: agentPrompt 
+          }, // Agent instructions
           ...messageHistory,
-          { role: 'user', content: input }, // Current user query
+          { 
+            role: 'user', 
+            content: input 
+          }, // Current user query
         ],
         stream: true,
         options: {
           num_ctx: contextSize, // Custom context size
-          temperature: temp, // Make responses more deterministic
-        },
+          temperature: temp // Make responses more deterministic
+        }
       });
-
+  
       let accumulatedResponse = '';
       setMessages((prev) => prev.filter((item) => item.role !== 'thinking'));
-
+  
       for await (const part of response) {
         accumulatedResponse += part.message.content;
         const renderedContent = renderMessageContent(accumulatedResponse);
@@ -149,8 +157,9 @@ export const PromptInputInterface: React.FC = () => {
           return [...withoutThinking, { role: 'assistant', content: renderedContent }];
         });
       }
-
+  
       setMessageHistory((prev) => [...prev, { role: 'assistant', content: accumulatedResponse }]);
+      // console.log("token count", await getConversationTokenCount(messageHistory));
     } catch (error) {
       console.log('Error in sendMessage:', error);
       setMessages((prev) => [
@@ -160,46 +169,58 @@ export const PromptInputInterface: React.FC = () => {
     }
   };
 
-  async function loadData(data: string = '', dataName: string = '') {
+
+  async function loadData ( data: string = "", dataName: string = "") {
     setMessageHistory((prev: MessageHistory[]) => [
-      ...prev.filter(
-        (msg) => !(msg.role === 'system' && typeof msg.content === 'string' && msg.content.startsWith(`${dataName} data:`)),
-      ),
+      ...prev.filter((msg) => !(msg.role === 'system' && typeof msg.content === 'string' && msg.content.startsWith(`${dataName} data:`))),
       { role: 'system', content: `${dataName} data: ${data}` },
     ]);
-  }
+  };
 
+   /**
+   * Finds and returns the section of a specific CIP from the content string.
+   * @param cipNumber - The CIP number to search for (e.g., "1", "0001").
+   * @returns The matching CIP section or an error message if not found.
+   */
   function findCIP(cipNumber: string): string {
-    console.log('looking for cip: ', cipNumber);
+    // Extract the content from the JSON object
+    console.log("looking for cip: ", cipNumber);
 
-    const cipSections = cipdata.content
-      .split('---')
-      .map((section) => section.trim())
-      .filter((section) => section);
+    // Split content into sections using "---" delimiter, trim whitespace, and filter out empty sections
+    const cipSections = cipdata.content.split('---')
+      .map(section => section.trim())
+      .filter(section => section);
 
+    // Iterate through each section to find the matching CIP
     for (const section of cipSections) {
-      const firstLine = section.split('\n')[0];
+      const firstLine = section.split('\n')[0]; // Get the first line of the section
+
+      // Check for various CIP title formats
       if (
         firstLine.includes(`CIP-${cipNumber}`) ||
-        firstLine.includes(`CIP-${cipNumber.padStart(4, '0')}`) ||
+        firstLine.includes(`CIP-${cipNumber.padStart(4, '0')}`) || // Pads with zeros (e.g., "1" -> "0001")
         firstLine.includes(`#${cipNumber}`)
       ) {
         console.log('CIP found:', section);
-        loadData(section, 'Cip');
+        loadData(section, "Cip"); // Return the entire section if a match is found
       }
     }
-    return 'CIP not found';
-  }
+    // Return error message if no match is found
+    return "CIP not found";
+  };
 
+  /** 
+  ----------------------------------------------------------------------------  
+  Function that queries the ledger state for governance proposals and adds
+  it as part of agent history.
+  ----------------------------------------------------------------------------  
+  */
   async function agentGetProposalsTool() {
     setLoadingProposals(true);
-    setMessages((prev: any) => [
+    setMessages(((prev: any) => [
       ...prev,
-      {
-        role: 'system',
-        content: 'Fetching current live proposals. The agent will let you know in here once proposals are available.',
-      },
-    ]);
+      { role: 'system', content: 'Fetching current live proposals. The agent will let you know in here once proposals are available.' },
+    ]));
     try {
       const fetchedProposals: any[] = await getProposals();
       console.log('fetchedProposals:', fetchedProposals);
@@ -213,26 +234,28 @@ export const PromptInputInterface: React.FC = () => {
           { role: 'system', content: `Cardano Governance Proposals: ${contextContent}` },
         ]);
       }
-      setMessages((prev: any) => [
+      setMessages(((prev: any) => [
         ...prev,
-        { role: 'system', content: `Proposals are now available, there are currently ${fetchedProposals.length} proposals.` },
-      ]);
+        { role: 'system', content: `Proposals are now available, there are currently ${fetchedProposals.length} proposals.` }
+      ]));
     } catch (error) {
       console.error('Failed to fetch proposals:', error);
-      setMessages((prev: any) => [
+      setMessages(((prev: any) => [
         ...prev,
-        {
-          role: 'system',
-          content: 'There was an error getting proposals, please make sure you are connected to the Cardano network in the settings above.',
-        },
-      ]);
-    }
-  }
-
-  async function getProposals(): Promise<any[]> {
-    const method: string = 'queryLedgerStateGovernanceProposals';
-    const params = {};
-
+        { role: 'system', content: 'There was an error getting proposals, please make sure you are connected to the Cardano network in the settings above.' },
+      ]));
+    };
+  };
+  /**
+  ----------------------------------------------------------------------------  
+  Function that queries the ledger state for governance proposals
+  ----------------------------------------------------------------------------  
+  */
+  async function getProposals(): Promise<any[]>
+  {
+    const method: string = 'queryLedgerState/governanceProposals';
+    const params ={};
+  
     let wspRes = await wsp(method, params);
     return new Promise((resolve, reject) => {
       wspRes.onmessage = async (e: any) => {
@@ -247,8 +270,12 @@ export const PromptInputInterface: React.FC = () => {
         }
       };
     });
-  }
-
+  };
+  /**
+  ----------------------------------------------------------------------------  
+  Function that fetches epoch information and adds it as part of agent history.
+  ----------------------------------------------------------------------------  
+  */
   async function agentGetEpochInformationTool() {
     try {
       const epochTime = await getCurrentEpochTime();
@@ -273,7 +300,9 @@ export const PromptInputInterface: React.FC = () => {
     setInterval(async () => {
       try {
         const epochTime = await getCurrentEpochTime();
+        // console.log('epochTime:', epochTime);
         const isDifferent = JSON.stringify(epochTime) !== JSON.stringify(epochInfo);
+        // console.log('isDifferent:', isDifferent);
         if (isDifferent) {
           setEpochInfo(epochTime);
           const epochContent = JSON.stringify(epochTime, null, 2);
@@ -290,113 +319,136 @@ export const PromptInputInterface: React.FC = () => {
         ]);
       }
     }, 25000);
-  }
+  };
 
-  async function parseResults(results: any[]): Promise<Array<{ proposal: any; metadata: any }>> {
-    const parsedProposals: any = await Promise.all(
-      results.map(async (proposal: any) => {
-        let proposalParsed = {};
-        const metadataUri = proposal.metadata.url;
-        const metadata = await loadJsonMetadata(metadataUri);
-        const votes = proposal.votes;
-        const voteSummary = {
-          totalYes: votes.filter((v: any) => v.vote === 'yes').length,
-          totalNo: votes.filter((v: any) => v.vote === 'no').length,
-          totalAbstain: votes.filter((v: any) => v.vote === 'abstain').length,
-          totalVotes: votes.length,
-        };
-        metadata !== 'error'
-          ? (proposalParsed = {
-              '@contxt': proposal['@contxt'],
-              title: metadata.body.title,
-              proposalActionType: proposal.action.type,
-              abstract: metadata.body.abstract,
-              motivation: metadata.body.motivation,
-              rationale: metadata.body.rationale,
-              references: metadata.body.references,
-              transactionId: proposal.proposal.transaction.id,
-              deposit: proposal.deposit.ada.lovelace,
-              returnAccount: proposal.returnAccount,
-              metadata: metadata,
-              votes: votes,
-              voteSummary: voteSummary,
-              epochStart: proposal.since.epoch,
-              epochEnd: proposal.until.epoch,
-            })
-          : (proposalParsed = {
-              '@contxt': proposal['@contxt'],
-              title: 'unavailable',
-              proposalActionType: proposal.action.type,
-              abstract: 'unavailable',
-              motivation: 'unavailable',
-              rationale: 'unavailable',
-              references: 'unavailable',
-              transactionId: proposal.proposal.transaction.id,
-              deposit: proposal.deposit.ada.lovelace,
-              returnAccount: proposal.returnAccount,
-              metadata: 'unavailable',
-              votes: votes,
-              voteSummary: voteSummary,
-              epochStart: proposal.since.epoch,
-              epochEnd: proposal.until.epoch,
-            });
-        return proposalParsed;
-      }),
-    );
-    return parsedProposals;
+  /** 
+  ----------------------------------------------------------------------------  
+  Function that parses all the metadata from the onchain proposals
+  ----------------------------------------------------------------------------  
+  */
+  async function parseResults(results: any[]): Promise<Array<{ proposal: any, metadata: any }>> {
+    //try {
+      const parsedProposals: any = await Promise.all(
+        results.map(async (proposal: any) => {
+          let proposalParsed = {}
+          const metadataUri = proposal.metadata.url;
+          const metadata = await loadJsonMetadata(metadataUri);
+          const votes = proposal.votes;
+          const voteSummary = {
+            totalYes: votes.filter((v: any) => v.vote === 'yes').length,
+            totalNo: votes.filter((v: any) => v.vote === 'no').length,
+            totalAbstain: votes.filter((v: any) => v.vote === 'abstain').length,
+            totalVotes: votes.length,
+          };
+          metadata !== "error" ? proposalParsed = {
+            "@contxt": proposal["@contxt"],
+            "title": metadata.body.title,
+            "proposalActionType": proposal.action.type,
+            "abstract": metadata.body.abstract,
+            "motivation": metadata.body.motivation,
+            "rationale": metadata.body.rationale,
+            "references": metadata.body.references,
+            "transactionId": proposal.proposal.transaction.id,
+            "deposit": proposal.deposit.ada.lovelace,
+            "returnAccount": proposal.returnAccount,
+            "metadata": metadata,
+            "votes": votes,
+            "voteSummary": voteSummary, // Add summary
+            "epochStart": proposal.since.epoch,
+            "epochEnd": proposal.until.epoch,
+          } :
+          proposalParsed = {
+            "@contxt": proposal["@contxt"],
+            "title": "unavailable",
+            "proposalActionType": proposal.action.type,
+            "abstract": "unavailable",
+            "motivation":"unavailable",
+            "rationale": "unavailable",
+            "references": "unavailable",
+            "transactionId": proposal.proposal.transaction.id,
+            "deposit": proposal.deposit.ada.lovelace,
+            "returnAccount": proposal.returnAccount,
+            "metadata": "unavailable",
+            "votes": votes,
+            "voteSummary": voteSummary, // Add summary
+            "epochStart": proposal.since.epoch,
+            "epochEnd": proposal.until.epoch,
+          }
+          return proposalParsed;
+        })
+      );
+      return parsedProposals;
+    //} catch (error) {
+    //  console.log('Error parsing results:', error);
+    //  return [];
+    //}
   }
-
+  /* 
+  ----------------------------------------------------------------------------  
+  Fetches metadata from IPFS or HTTP specified in onchain proposal
+  ----------------------------------------------------------------------------  
+  */
   async function loadJsonMetadata(metadataUri: string) {
-    let uri = metadataUri.startsWith('ipfs://')
-      ? `https://ipfs.onchainapps.io/ipfs/${metadataUri.slice(7)}`
+    let uri = metadataUri.startsWith('ipfs://') 
+      ? `https://ipfs.onchainapps.io/ipfs/${metadataUri.slice(7)}` 
       : metadataUri;
-
+  
     try {
       const response = await fetch(uri);
       if (!response.ok) {
         console.warn('Failed to fetch metadata:', response.statusText);
-        return 'error';
+        return "error";
       }
       const jsonData = await response.json();
       console.log('Metadata fetched:', jsonData);
       return jsonData;
     } catch (error) {
       console.error('Error loading metadata:', error);
-      return 'error';
+      return "error";
     }
   }
-
+  /**
+  ----------------------------------------------------------------------------  
+  Renders all markdown content in the chat interface that's been preprocessed
+  ----------------------------------------------------------------------------  
+  */
   function renderMessageContent(msg: string | undefined): React.ReactNode {
+    // Type guard for non-string input
     if (typeof msg !== 'string') {
       console.warn('Expected msg to be a string, received:', typeof msg);
       return msg as React.ReactNode;
     }
-
+  
+    // Helper function to preprocess math content
     const preprocessMath = (text: string): string => {
-      return text.replace(/times/g, '\\cdot').replace(/frac/g, '\\frac').replace(/\\(.)/g, '$1');
+      return text
+        .replace(/times/g, '\\cdot')      // Replace "times" with "\cdot" for multiplication
+        .replace(/frac/g, '\\frac')       // Replace "frac" with "\frac" for fractions
+        .replace(/\\(.)/g, '$1');         // Unescape backslashes
     };
-
+  
+    // Helper function to clean text by limiting consecutive newlines
     const cleanMessage = (text: string): string => {
-      return text.replace(/\n{3,}/g, '\n\n');
+      return text.replace(/\n{3,}/g, '\n\n');  // Replace 3+ newlines with 2
     };
-
+  
+    // Split message into parts: code blocks, block math, inline math, and regular text
     const parts = msg.split(/(```(\w+)?([\s\S]*?)```|\$\$[\s\S]*?\$\$|(?<!\\)\$(?:(?!\\).)*\$(?<!\\))/);
     const elements: React.ReactNode[] = [];
-
+  
+    // Process each part
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
-
+  
       if (part && typeof part === 'string') {
-        if (part.startsWith('```')) {
-          const language = parts[i + 1] || 'text';
-          const code = parts[i + 2]?.trim() || '';
+        if (part.startsWith('```')) { // Handle code blocks
+          const language = parts[i + 1] || 'text'; // Language or default to 'text'
+          const code = parts[i + 2]?.trim() || ''; // Code content
           if (code) {
             elements.push(
-              <Sheet key={`code-${i}`} variant='outlined' sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
+              <Sheet key={`code-${i}`} variant="outlined" sx={{ borderRadius: 'sm', p: 1, mb: 1 }}>
                 <Divider />
-                <Typography level='body-sm' sx={{ fontWeight: 'bold' }}>
-                  Code block:
-                </Typography>
+                <Typography level="body-sm" sx={{ fontWeight: 'bold' }}>Code block:</Typography>
                 <SyntaxHighlighter
                   language={language}
                   style={mode === 'dark' ? oneDark : duotoneLight}
@@ -404,25 +456,26 @@ export const PromptInputInterface: React.FC = () => {
                 >
                   {code}
                 </SyntaxHighlighter>
-              </Sheet>,
+              </Sheet>
             );
-            i += 2;
+            i += 2; // Skip the captured language and code parts
           }
-        } else if (part.startsWith('$$  ') && part.endsWith('  $$')) {
-          const math = part.slice(2, -2).trim();
-          const mathProcessed = preprocessMath(math);
+        } else if (part.startsWith('$$  ') && part.endsWith('  $$')) { // Handle block math
+          const math = part.slice(2, -2).trim();         // Extract math content
+          const mathProcessed = preprocessMath(math);    // Preprocess math
           elements.push(
-            <Typography key={`math-${i}`} level='body-md'>
+            <Typography key={`math-${i}`} level="body-md">
               <BlockMath>{mathProcessed}</BlockMath>
-            </Typography>,
+            </Typography>
           );
-        } else {
-          const cleanedPart = cleanMessage(part);
-          const inlineMathRegex = /\$(.*?)\$/g;
+        } else { // Handle regular text or inline math
+          const cleanedPart = cleanMessage(part);        // Clean the text
+          const inlineMathRegex = /\$(.*?)\$/g;          // Regex for inline math
           let match: RegExpExecArray | null;
           let lastIndex = 0;
           const segments: string[] = [];
-
+  
+          // Split part into text and inline math segments
           while ((match = inlineMathRegex.exec(cleanedPart))) {
             if (match.index > lastIndex) {
               segments.push(cleanedPart.slice(lastIndex, match.index));
@@ -433,32 +486,38 @@ export const PromptInputInterface: React.FC = () => {
           if (lastIndex < cleanedPart.length) {
             segments.push(cleanedPart.slice(lastIndex));
           }
-
+  
+          // Render segments
           const renderedSegments = segments.map((segment, idx) => {
             if (segment.startsWith('$') && segment.endsWith('$')) {
-              const math = segment.slice(1, -1);
-              const mathProcessed = preprocessMath(math);
+              const math = segment.slice(1, -1);         // Extract inline math content
+              const mathProcessed = preprocessMath(math); // Preprocess math
               return <InlineMath key={`inline-math-${idx}`}>{mathProcessed}</InlineMath>;
             }
             return <Markdown rehypePlugins={[rehypeRaw]} key={`text-${idx}`}>{segment}</Markdown>;
           });
-
+  
           elements.push(
-            <Typography key={`desc-${i}`} level='body-md' sx={{ whiteSpace: 'pre-wrap' }}>
+            <Typography key={`desc-${i}`} level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
               {renderedSegments}
-            </Typography>,
+            </Typography>
           );
         }
       }
     }
-    return elements.length > 0 ? elements : <Typography level='body-md'>{msg}</Typography>;
+    // Return rendered elements or fallback to plain text
+    return elements.length > 0 ? elements : <Typography level="body-md">{msg}</Typography>;
   }
-
+  /**
+  ----------------------------------------------------------------------------  
+  Test function for caculating current used context tokens to offload into
+  REG memory system
+  ----------------------------------------------------------------------------  
+  */
   async function getConversationTokenCount(messages) {
-    const prompt = messages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
+    const prompt = messages.map(msg => `${msg.role}: ${msg.content}`).join('\n');
     return await getTokenCount(prompt);
   }
-
   async function getTokenCount(text) {
     try {
       const aiEndpointParsed = JSON.parse(aiEndpoint);
@@ -471,21 +530,27 @@ export const PromptInputInterface: React.FC = () => {
         prompt: text,
         stream: false,
         options: {
-          num_predict: 0,
-        },
+          num_predict: 0
+        }
       });
       console.log('Ollama response:', response);
       if (response.prompt_eval_count !== undefined) {
         return response.prompt_eval_count;
       } else {
         console.error('prompt_eval_count is undefined');
-        return 0;
+        return 0; // or handle accordingly
       }
     } catch (error) {
       console.error('Error in getTokenCount:', error);
-      return 0;
+      return 0; // or throw error
     }
   }
+
+  /* 
+  ----------------------------------------------------------------------------  
+  Abort all prompts
+  ----------------------------------------------------------------------------  
+  */
 
   async function ollamaAbort() {
     try {
@@ -498,51 +563,53 @@ export const PromptInputInterface: React.FC = () => {
       console.log('Ollama abort response:', response);
     } catch (error) {
       console.error('Error in ollamaAbort:', error);
-    }
-  }
+    };
+  };
 
   useEffect(() => {
     agentGetProposalsTool();
     agentGetEpochInformationTool();
-    loadData(JSON.stringify(LalkulWhitepaper, null, 2), 'lalkul-drep');
+    // loadData(lalkul.content, "lalkul-drep");
+    loadData(JSON.stringify(LalkulWhitepaper, null, 2), "lalkul-drep");
+    // loadData(sancho.content, "sancho");
+    // findCIP('1694');
   }, []);
 
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    scrollToBottom()
+  }, [messages])
 
   return (
     <>
       <Sheet
         sx={{
-          mt: 10, // Reduced margin to account for TopBar height
+          mt: 20,
+          // display: 'flex',
           flexDirection: 'column',
-          maxWidth: '100vw', // Changed to 100vw to ensure it fits the viewport
-          width: '100%', // Full width of parent
+          maxWidth: '80vw',
           height: '80vh',
           borderRadius: 'md',
           overflow: 'hidden',
           boxShadow: 'sm',
           backgroundColor: mode === 'dark' ? 'background.surface' : 'background.body',
-          '@media (max-width: 960px)': {
-            height: 'calc(100vh - 80px)', // Adjusted for TopBar and padding
-            maxWidth: '100vw', // Ensure it doesn't exceed viewport
-          },
+          [`@media (max-width: 960px)`]: {
+            height: 'calc(100vh - 64px)'
+          }
         }}
       >
-        <Typography level='body-md' sx={{ m: 1 }}>
+        <Typography level="body-md" sx={{m: 1}}>
           Agent {epochInfo ? `is currently in epoch ${epochInfo.epoch}. Current Epoch Ends In ${epochInfo.timeLeftInEpoch}` : 'is fetching epoch information...'} <br />
         </Typography>
         <hr />
         <Sheet
           sx={{
             height: '50vh',
-            width: '100%', // Full width of parent
-            maxWidth: '100vw', // Prevent overflow
+            width: '80vw',
             flexGrow: 1,
             overflowY: 'auto',
             p: 2,
-            bgcolor: mode === 'dark' ? 'background.surface' : 'background.body',
+            bgcolor: mode === 'dark' ? 'background.surface' : 'background.body'
           }}
         >
           <List>
@@ -550,11 +617,11 @@ export const PromptInputInterface: React.FC = () => {
               <ListItem
                 key={index}
                 sx={{
-                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start'
                 }}
               >
                 <Sheet
-                  variant='soft'
+                  variant="soft"
                   color={msg.role === 'user' ? 'primary' : 'neutral'}
                   sx={{
                     borderRadius: 'lg',
@@ -567,7 +634,10 @@ export const PromptInputInterface: React.FC = () => {
                 >
                   <Typography>{msg.content}</Typography>
                 </Sheet>
-                {msg.role !== 'thinking' && <CopyTextButton textToCopy={msg.content} />}
+                {/* Add CopyTextButton for string content */}
+                {msg.role !== 'thinking' && (
+                  <CopyTextButton textToCopy={msg.content} />
+                )}                
               </ListItem>
             ))}
             <div ref={messagesEndRef} />
@@ -581,122 +651,92 @@ export const PromptInputInterface: React.FC = () => {
             borderTop: '1px solid',
             borderColor: 'neutral.outlinedBorder',
             flexDirection: 'column',
-            '@media (min-width: 400px)': {
-              flexDirection: 'row',
-            },
+            [`@media (min-width: 400px)`]: {
+              flexDirection: 'row'
+            }
           }}
         >
           <Input
             fullWidth
-            variant='outlined'
-            size='md'
+            variant="outlined"
+            size="md"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyUp={(e) => {
               if (e.key === 'Enter') {
                 if (e.shiftKey) {
-                  e.preventDefault();
-                  setInput((prevInput) => prevInput + '\n');
+                  e.preventDefault()
+                  setInput((prevInput) => prevInput + '\n')
                 } else {
-                  aiClinet === 'ollama'
-                    ? sendMessageOllama()
-                    : sendMessageOpenAi(
-                        input,
-                        setInput,
-                        setMessages,
-                        setMessageHistory,
-                        messageHistory,
-                        temp,
-                        renderMessageContent,
-                        agentPrompt,
-                        aiApiHook,
-                        aiClinet,
-                        mode,
-                      );
+                  aiClinet === 'ollama' ? sendMessageOllama : sendMessageOpenAi( input, setInput, setMessages, setMessageHistory, messageHistory, temp, renderMessageContent, agentPrompt, aiApiHook, aiClinet, mode );
                 }
               }
             }}
-            placeholder='Type a message'
+            placeholder="Type a message"
             sx={{
               flexGrow: 1,
-              '@media (max-width: 400px)': {
-                mb: 1,
+              [`@media (max-width: 400px)`]: {
+                mb: 1
               },
               '& .MuiInput-input': {
                 wordWrap: 'break-word',
-                whiteSpace: 'pre-wrap',
-              },
+                whiteSpace: 'pre-wrap'
+              }
             }}
-          />
+          />    
           <Button
-            variant='outlined'
-            color='primary'
+            variant="outlined"
+            color="primary"
             endDecorator={<SendIcon />}
-            onClick={
-              aiClinet === 'ollama'
-                ? sendMessageOllama
-                : () =>
-                    sendMessageOpenAi(
-                      input,
-                      setInput,
-                      setMessages,
-                      setMessageHistory,
-                      messageHistory,
-                      temp,
-                      renderMessageContent,
-                      agentPrompt,
-                      aiApiHook,
-                      aiClinet,
-                      mode,
-                    )
-            }
+            onClick={aiClinet === 'ollama' ? sendMessageOllama : () => sendMessageOpenAi( input, setInput, setMessages, setMessageHistory, messageHistory, temp, renderMessageContent, agentPrompt, aiApiHook, aiClinet, mode )}
             sx={{
               ml: 1,
               mt: 1,
-              '@media (min-width: 400px)': {
+              [`@media (min-width: 400px)`]: {
                 ml: 1,
-                mt: 0,
+                mt: 0
               },
-              maxHeight: '55px',
+              maxHeight: '55px'
             }}
           >
             Send
           </Button>
           <Button
-            variant='outlined'
-            color='primary'
+            variant="outlined"
+            color="primary"
             endDecorator={<ClearIcon />}
             onClick={() => setMessages([])}
             sx={{
               ml: 1,
               mt: 1,
-              '@media (min-width: 400px)': {
+              [`@media (min-width: 400px)`]: {
                 ml: 1,
-                mt: 0,
+                mt: 0
               },
-              maxHeight: '55px',
+              maxHeight: '55px'
             }}
           >
             Clear
           </Button>
           <Button
-            variant='outlined'
-            color='primary'
+            variant="outlined"
+            color="primary"
             endDecorator={<ClearIcon />}
             onClick={() => ollamaAbort()}
             sx={{
               ml: 1,
               mt: 1,
-              '@media (min-width: 400px)': {
+              [`@media (min-width: 400px)`]: {
                 ml: 1,
-                mt: 0,
+                mt: 0
               },
-              maxHeight: '55px',
+              maxHeight: '55px'
             }}
           >
             Abort
           </Button>
         </Sheet>
+        For testing purposes only.
         <Sheet
           sx={{
             display: 'flex',
@@ -705,93 +745,97 @@ export const PromptInputInterface: React.FC = () => {
             borderTop: '1px solid',
             borderColor: 'neutral.outlinedBorder',
             flexDirection: 'column',
-            '@media (min-width: 400px)': {
-              flexDirection: 'row',
-            },
+            [`@media (min-width: 400px)`]: {
+              flexDirection: 'row'
+            }
           }}
         >
           <FormControl>
             <FormLabel>Context Size</FormLabel>
             <Input
-              variant='outlined'
-              size='md'
+              //fullWidth
+              variant="outlined"
+              size="md"
               value={contextSize}
-              type='number'
+              type="number"
               onChange={(e) => setContextSize(Number(e.target.value))}
               onKeyUp={(e) => {
                 if (e.key === 'Enter') {
                   if (e.shiftKey) {
-                    e.preventDefault();
-                    setContextSize((prevInput) => prevInput);
+                    e.preventDefault()
+                    setContextSize((prevInput) => prevInput)
                   } else {
-                    setContextSize((prevInput) => prevInput);
+                    setContextSize((prevInput) => prevInput)
                   }
                 }
               }}
-              placeholder='Context Size'
+              placeholder="Context Size"
               sx={{
                 flexGrow: 1,
-                '@media (max-width: 400px)': {
-                  mb: 1,
+                [`@media (max-width: 400px)`]: {
+                  mb: 1
                 },
                 '& .MuiInput-input': {
                   wordWrap: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                },
+                  whiteSpace: 'pre-wrap'
+                }
               }}
+              
             />
             <FormHelperText>If you get RAM errors lower this.</FormHelperText>
           </FormControl>
           <FormControl>
             <FormLabel>Temperature:</FormLabel>
             <Input
-              variant='outlined'
-              size='md'
-              type='number'
+              //fullWidth
+              variant="outlined"
+              size="md"
+              type="number"
               value={temp}
               onChange={(e) => setTemp(Number(e.target.value))}
               onKeyUp={(e) => {
                 if (e.key === 'Enter') {
                   if (e.shiftKey) {
-                    e.preventDefault();
-                    setTemp((prevInput) => prevInput);
+                    e.preventDefault()
+                    setTemp((prevInput) => prevInput)
                   } else {
-                    setTemp((prevInput) => prevInput);
+                    setTemp((prevInput) => prevInput)
                   }
                 }
               }}
-              placeholder='Temperature'
+              placeholder="Temperature"
               sx={{
                 flexGrow: 1,
-                '@media (max-width: 400px)': {
-                  mb: 1,
+                [`@media (max-width: 400px)`]: {
+                  mb: 1
                 },
                 '& .MuiInput-input': {
                   wordWrap: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                },
+                  whiteSpace: 'pre-wrap'
+                }
               }}
             />
             <FormHelperText>How creative should the llm be.</FormHelperText>
           </FormControl>
           <Button
-            variant='outlined'
-            color='primary'
+            variant="outlined"
+            color="primary"
             endDecorator={<Refresh />}
             onClick={() => agentGetProposalsTool()}
             sx={{
               top: 25,
               ml: 0,
               mt: 0,
-              '@media (min-width: 400px)': {
+              [`@media (min-width: 400px)`]: {
                 ml: 0,
-                mt: 0,
+                mt: 0
               },
-              maxHeight: '25px',
+              maxHeight: '25px'
             }}
           >
             Reload Proposals
           </Button>
+          
         </Sheet>
         <Sheet
           sx={{
@@ -801,62 +845,111 @@ export const PromptInputInterface: React.FC = () => {
             borderTop: '1px solid',
             borderColor: 'neutral.outlinedBorder',
             flexDirection: 'column',
-            '@media (min-width: 400px)': {
-              flexDirection: 'row',
-            },
+            [`@media (min-width: 400px)`]: {
+              flexDirection: 'row'
+            }
           }}
         >
           <Input
             fullWidth
-            variant='outlined'
-            size='md'
+            variant="outlined"
+            size="md"
             value={persona}
             onChange={(e) => setPersona(e.target.value)}
             onKeyUp={(e) => {
               if (e.key === 'Enter') {
                 if (e.shiftKey) {
-                  e.preventDefault();
-                  setPersona((prevInput) => prevInput + '\n');
+                  e.preventDefault()
+                  setPersona((prevInput) => prevInput + '\n')
                 } else {
-                  setPersona((prevInput) => prevInput + '\n');
+                  setPersona((prevInput) => prevInput + '\n')
                 }
               }
             }}
-            placeholder='Persona'
+            placeholder="Persona"
             sx={{
               flexGrow: 1,
-              '@media (max-width: 400px)': {
-                mb: 1,
+              [`@media (max-width: 400px)`]: {
+                mb: 1
               },
               '& .MuiInput-input': {
                 wordWrap: 'break-word',
-                whiteSpace: 'pre-wrap',
-              },
+                whiteSpace: 'pre-wrap'
+              }
             }}
           />
+          <br />
           <FormHelperText>Short description of personality.</FormHelperText>
         </Sheet>
+        {/*
+        <Sheet
+          sx={{
+            display: 'flex',
+            p: 2,
+            bgcolor: mode === 'dark' ? 'background.surface' : 'background.body',
+            borderTop: '1px solid',
+            borderColor: 'neutral.outlinedBorder',
+            flexDirection: 'column',
+            [`@media (min-width: 400px)`]: {
+              flexDirection: 'row'
+            }
+          }}
+        >
+          
+          <Input
+            fullWidth
+            variant="outlined"
+            size="md"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            onKeyUp={(e) => {
+              if (e.key === 'Enter') {
+                if (e.shiftKey) {
+                  e.preventDefault()
+                  setDomain((prevInput) => prevInput + '\n')
+                } else {
+                  setDomain((prevInput) => prevInput + '\n')
+                }
+              }
+            }}
+            placeholder="Domain URL"
+            sx={{
+              flexGrow: 1,
+              [`@media (max-width: 400px)`]: {
+                mb: 1
+              },
+              '& .MuiInput-input': {
+                wordWrap: 'break-word',
+                whiteSpace: 'pre-wrap'
+              }
+            }}
+          />
+          
+        </Sheet>
+        */}
       </Sheet>
     </>
-  );
-};
-
+  )
+}
+/*
+----------------------------------------------------------------------------
+Copy text to clipboard component
+----------------------------------------------------------------------------
+*/
 interface CopyTextButtonProps {
-  textToCopy: any;
+  textToCopy: any; // The text you want to copy
 }
 
 const CopyTextButton: React.FC<CopyTextButtonProps> = ({ textToCopy }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    console.log('copying text: ', textToCopy);
+    console.log("copying text: ", textToCopy);
     try {
-      let text = textToCopy;
-      if (typeof textToCopy !== 'string') {
-        text = JSON.stringify(textToCopy[0].props.children[0].props.children, null, 2);
-      }
-      await navigator.clipboard.writeText(text);
+      textToCopy !== typeof String(textToCopy) ? textToCopy = JSON.stringify(textToCopy[0].props.children[0].props.children, null, 2) : textToCopy; 
+      await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
+      // Reset the "Copied" state after 2 seconds
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
@@ -864,8 +957,14 @@ const CopyTextButton: React.FC<CopyTextButtonProps> = ({ textToCopy }) => {
   };
 
   return (
-    <Tooltip title={copied ? 'Copied!' : 'Copy to clipboard'} variant='soft'>
-      <Button variant='outlined' color='neutral' startDecorator={<ContentCopyIcon />} onClick={handleCopy} sx={{ m: 0, pr: 0 }}>
+    <Tooltip title={copied ? 'Copied!' : 'Copy to clipboard'} variant="soft">
+      <Button
+        variant="outlined"
+        color="neutral"
+        startDecorator={<ContentCopyIcon />}
+        onClick={handleCopy}
+        sx={{ m: 0, pr: 0 }}
+      >
         {/*copied ? 'Copied' : 'Copy'*/}
       </Button>
     </Tooltip>

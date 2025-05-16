@@ -13,11 +13,12 @@ const App = (): JSX.Element => {
       <Box
         sx={{
           width: '100%',
-          margin: 'auto',
-          padding: 2,
+          margin: '0 auto', // Center the content
+          padding: 0.5, // Reduced from 1 to maximize horizontal space
           '@media (max-width: 960px)': {
             flexDirection: 'column',
             height: 'auto',
+            padding: 0, // No padding on small screens
           },
         }}
       >
@@ -29,7 +30,7 @@ const App = (): JSX.Element => {
             '@media (max-width: 960px)': {
               maxWidth: '100%', // Full width on smaller screens
               marginRight: 0,
-              marginBottom: 2,
+              marginBottom: 1,
             },
           }}
         >
