@@ -38,7 +38,9 @@ export const EndpointSettingsModal: React.FC = () => {
         alert('Please enter an API key.');
         return;
       }
+      setApiKey(import.meta.env.VITE_GPT_API_KEY as string);
       setAIendpoint(JSON.stringify({ type: 'chatgpt', apiKey }));
+      
     }
     // Save Ogmios endpoint
     setOgmiosHook(ogmiosHook);
@@ -50,7 +52,7 @@ export const EndpointSettingsModal: React.FC = () => {
     endpointType === "ollama" && setHostAddress('https://ollama.photrek.io');
     endpointType === "ollama" && setPortNumber('443');
     endpointType === "ollama" && setSelectedModel('llama3.1:latest');
-    endpointType === "chatgpt" && setApiKey('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');
+    endpointType === "chatgpt" && setApiKey(import.meta.env.VITE_GPT_API_KEY as string);
     endpointType === "chatgpt" &&  setAIendpoint(JSON.stringify({ type: 'chatgpt', apiKey }));
     setOgmiosHook("wss://ogmiosmain.onchainapps.io");
   };
