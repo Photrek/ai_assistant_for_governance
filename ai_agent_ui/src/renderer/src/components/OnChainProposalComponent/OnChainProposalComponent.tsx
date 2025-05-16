@@ -105,12 +105,12 @@ export const OnChainProposalComponent: React.FC = () => {
 
   const handleOpen = () => {
     setOpen(true)
-    getProposal();
+    proposals.length === 0 && getProposal();
   };
 
   return (
     <>
-    <Button sx={{width: "100%"}} variant="outlined" onClick={() => handleOpen()} >
+    <Button variant='outlined'onClick={() => handleOpen() } sx={{width: "100% "}} >
       View Proposals
     </Button>
     <Modal

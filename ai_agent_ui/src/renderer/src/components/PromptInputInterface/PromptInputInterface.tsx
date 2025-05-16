@@ -19,6 +19,8 @@ import brain_dark from '../../../../assets/artificial-intelligence-dark.gif'
 import Refresh from '@mui/icons-material/Refresh';
 import rehypeRaw from 'rehype-raw';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { useAiApiKeyhook, useAiClientHook } from '../../hooks/useEndpointHook';
+import { sendMessageOpenAi } from './OpenAIInputComponent';
 
 //*Imports for information for llm to be passed by the agent*//
 import cipdata from "./data/cips.cardano.org.json";
@@ -27,11 +29,11 @@ import sancho from "./data/sancho.network.json";
 import intersect from "./data/docs.intersectmbo.org.json";
 import LalkulWhitepaper from "./data/lalkulWhitepaper.json";
 
-interface Message {
+export interface Message {
   role: 'user' | 'assistant' | 'thinking' | 'system';
   content: string | React.ReactNode;
 }
-interface MessageHistory {
+export interface MessageHistory {
   role: 'system' | 'user' | 'assistant' | 'thinking';
   content: string | React.ReactNode;
 }
@@ -51,6 +53,8 @@ export const PromptInputInterface: React.FC = () => {
   const [ persona , setPersona ] = useState('Franklin D. Roosevelt');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [ loadingProposals, setLoadingProposals ] = useState(false);
+  const [ aiClinet, setAiClient ] = useAiClientHook<'ollama' | 'chatgpt' | 'grok'>();
+  const [ aiApiHook, setAiApiHook ] = useAiApiKeyhook<string>();
 
   const agentPrompt = ` 
   You are an AI agent assisting with Cardano governance proposals, take on the persona of ${persona}.
@@ -93,7 +97,7 @@ export const PromptInputInterface: React.FC = () => {
   This is where it all starts 
   -------------------------------------- 
   */
-  async function sendMessage() {
+  const sendMessageOllama = async () => {
     if (!input.trim()) return;
   
     const userMessage: Message = { role: 'user', content: input };
@@ -213,6 +217,10 @@ export const PromptInputInterface: React.FC = () => {
   */
   async function agentGetProposalsTool() {
     setLoadingProposals(true);
+    setMessages(((prev: any) => [
+      ...prev,
+      { role: 'system', content: 'Fetching current live proposals. The agent will let you know in here once proposals are available.' },
+    ]));
     try {
       const fetchedProposals = await getProposals();
       console.log('fetchedProposals:', fetchedProposals);
@@ -226,13 +234,16 @@ export const PromptInputInterface: React.FC = () => {
           { role: 'system', content: `Cardano Governance Proposals: ${contextContent}` },
         ]);
       }
-      setLoadingProposals(false);
+      setMessages(((prev: any) => [
+        ...prev,
+        { role: 'system', content: `Proposals are now available, there are currently ${proposals.length} proposals.` }
+      ]));
     } catch (error) {
       console.error('Failed to fetch proposals:', error);
-      setMessageHistory((prev: any) => [
+      setMessages(((prev: any) => [
         ...prev,
-        { role: 'system', content: 'Error: Could not fetch proposal data.' },
-      ]);
+        { role: 'system', content: 'There was an error getting proposals, please make sure you are connected to the Cardano network in the settings above.' },
+      ]));
     };
   };
   /**
@@ -574,10 +585,10 @@ export const PromptInputInterface: React.FC = () => {
       <Sheet
         sx={{
           mt: 20,
-          display: 'flex',
+          // display: 'flex',
           flexDirection: 'column',
-          width: '100%',
-          height: '90vh',
+          maxWidth: '80vw',
+          height: '80vh',
           borderRadius: 'md',
           overflow: 'hidden',
           boxShadow: 'sm',
@@ -589,12 +600,12 @@ export const PromptInputInterface: React.FC = () => {
       >
         <Typography level="body-md" sx={{m: 1}}>
           Agent {epochInfo ? `is currently in epoch ${epochInfo.epoch}. Current Epoch Ends In ${epochInfo.timeLeftInEpoch}` : 'is fetching epoch information...'} <br />
-          {loadingProposals === true && "Loading Proposals" }
         </Typography>
         <hr />
         <Sheet
           sx={{
-            width: '100%',
+            height: '50vh',
+            width: '80vw',
             flexGrow: 1,
             overflowY: 'auto',
             p: 2,
@@ -657,7 +668,7 @@ export const PromptInputInterface: React.FC = () => {
                   e.preventDefault()
                   setInput((prevInput) => prevInput + '\n')
                 } else {
-                  sendMessage()
+                  aiClinet === 'ollama' ? sendMessageOllama : sendMessageOpenAi( input, setInput, setMessages, setMessageHistory, messageHistory, temp, renderMessageContent, agentPrompt, aiApiHook, aiClinet, mode );
                 }
               }
             }}
@@ -677,7 +688,7 @@ export const PromptInputInterface: React.FC = () => {
             variant="outlined"
             color="primary"
             endDecorator={<SendIcon />}
-            onClick={sendMessage}
+            onClick={aiClinet === 'ollama' ? sendMessageOllama : () => sendMessageOpenAi( input, setInput, setMessages, setMessageHistory, messageHistory, temp, renderMessageContent, agentPrompt, aiApiHook, aiClinet, mode )}
             sx={{
               ml: 1,
               mt: 1,
@@ -933,7 +944,9 @@ const CopyTextButton: React.FC<CopyTextButtonProps> = ({ textToCopy }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
+    console.log("copying text: ", textToCopy);
     try {
+      textToCopy !== typeof String(textToCopy) ? textToCopy = JSON.stringify(textToCopy[0].props.children[0].props.children, null, 2) : textToCopy; 
       await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       // Reset the "Copied" state after 2 seconds

@@ -82,7 +82,7 @@ export const ogmiosHealth = async () => {
   if (ogmiosHook === null) {
     localStorage.setItem("ogmiosHook", "wss://ogmiosmain.onchainapps.io:443");
     ogmiosHook = "wss://ogmiosmain.onchainapps.io:443";
-  }
+  };
   const requestOptions: any = {
     method: "GET",
     redirect: "follow",
@@ -95,7 +95,7 @@ export const ogmiosHealth = async () => {
     redirect: "follow",
   };
   try {
-    const fetchResponse = await fetch(`${ogmiosHook}/health`, requestOptions);
+    const fetchResponse = await fetch(`${ogmiosHook.replace("wss://", "https://").replace("ws://", "http://")}/health`, requestOptions);
     const data = await fetchResponse.json();
     // console.log(data);
     return data;

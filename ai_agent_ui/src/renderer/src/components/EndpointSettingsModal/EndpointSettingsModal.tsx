@@ -1,87 +1,130 @@
 import * as React from 'react';
-import { Modal, ModalDialog, DialogActions, ModalClose, Typography, Input, Button, Sheet } from '@mui/joy';
+import { Modal, ModalDialog, DialogActions, ModalClose, Typography, Input, Button, Sheet, Radio, RadioGroup } from '@mui/joy';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useAIEndpoint, useOgmiosHook } from '../../hooks/useEndpointHook';
+import { useAIEndpoint, useOgmiosHook, useAiApiKeyhook, useAiClientHook } from '../../hooks/useEndpointHook';
+import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
+import { useModel } from '../../hooks/useModel'
 
 export const EndpointSettingsModal: React.FC = () => {
   const [open, setOpen] = React.useState(false);
+  const [endpointType, setEndpointType] = useAiClientHook()as [string, (endpointType: string) => void];;
+  const [apiKey, setApiKey] = useAiApiKeyhook() as [string, (aiApiKey: string) => void];
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const [hostAddress, setHostAddress] = React.useState('');
   const [portNumber, setPortNumber] = React.useState('');
   const [aiEndpoint, setAIendpoint]: any = useAIEndpoint();
   const [ogmiosHook, setOgmiosHook]: any = useOgmiosHook();
+  const [selectedModel, setSelectedModel]: any = useModel()
 
   const handleSetAIEndPoint = async () => {
-    // Validate input
-    if (!hostAddress || !portNumber) {
-      alert('Please enter both IP address and port number.');
-      return;
-    };
-    if (isNaN(Number(portNumber))) {
-      alert('Port number must be a number.');
-      return;
-    };
-
-    const endpointArray = [hostAddress, portNumber];
-    const endpointArrayString = JSON.stringify(endpointArray);
-    console.log("endpointArrayString: ", endpointArrayString);
-    setAIendpoint(endpointArrayString);
+    if (endpointType === 'ollama') {
+      // Validate Ollama input
+      if (!hostAddress || !portNumber) {
+        alert('Please enter both IP address and port number.');
+        return;
+      }
+      if (isNaN(Number(portNumber))) {
+        alert('Port number must be a number.');
+        return;
+      }
+      const endpointArray = [hostAddress, portNumber];
+      const endpointArrayString = JSON.stringify(endpointArray);
+      console.log("endpointArrayString: ", endpointArrayString);
+      setAIendpoint(endpointArrayString);
+      setSelectedModel('llama3.1:latest');
+    } else {
+      if (!apiKey) {
+        alert('Please enter an API key.');
+        return;
+      }
+      setAIendpoint(JSON.stringify({ type: 'chatgpt', apiKey }));
+    }
     // Save Ogmios endpoint
-    setOgmiosHook(ogmiosHook); // This might need to be adjusted based on how you want to handle or format the Ogmios endpoint
-    handleClose(); // Close the modal after saving
+    setOgmiosHook(ogmiosHook);
+    handleClose();
   };
 
   const setDefaultEndPoints = async () => {
-    setAIendpoint(JSON.stringify(["https://ollama.photrek.io", "443"]));
-    setOgmiosHook("https://ogmios1hlp6cqc2ntyxv7q0mdz.mainnet-v6.ogmios-m1.demeter.run");
+    endpointType === "ollama" && setAIendpoint(JSON.stringify(["https://ollama.photrek.io", "443"]));
+    endpointType === "ollama" && setHostAddress('https://ollama.photrek.io');
+    endpointType === "ollama" && setPortNumber('443');
+    endpointType === "ollama" && setSelectedModel('llama3.1:latest');
+    endpointType === "chatgpt" && setApiKey('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');
+    endpointType === "chatgpt" &&  setAIendpoint(JSON.stringify({ type: 'chatgpt', apiKey }));
+    setOgmiosHook("wss://ogmiosmain.onchainapps.io");
   };
-
-
-  React.useEffect(() => {
-    !aiEndpoint ? setHostAddress('https://ollama.photrek.io') : setHostAddress(JSON.parse(aiEndpoint)[0]);
-    !aiEndpoint ? setPortNumber('443') :  setPortNumber(JSON.parse(aiEndpoint)[1]);
-    !ogmiosHook ? setOgmiosHook('https://ogmios1hlp6cqc2ntyxv7q0mdz.mainnet-v6.ogmios-m1.demeter.run') : setOgmiosHook(ogmiosHook);
-
-  }, [aiEndpoint, ogmiosHook]);
 
   return (
     <div>
-      <Button onClick={handleOpen} startDecorator={<SettingsIcon />} style={{minWidth: "125%"}} variant='outlined'>Settings</Button>
-      <Modal open={open} onClose={handleClose}>
+      <Button onClick={handleOpen} startDecorator={<SettingsIcon />} variant='outlined'>Settings</Button>
+      <Modal 
+        open={open} 
+        onClose={handleClose}
+      >
         <ModalDialog>
           <ModalClose />
           <Typography level="h4" id="modal-title">Endpoint Settings</Typography>
           <Sheet sx={{ p: 2 }}>
-            <Typography level="body-md" id="modal-description">Enter endpoints for your Ollama instance.</Typography>
-            <Input
+            <Typography level="body-md" id="modal-description">Select AI endpoint type:</Typography>
+            <RadioGroup
+              value={endpointType}
+              onChange={(e) => setEndpointType(e.target.value as 'ollama' | 'chatgpt')}
               sx={{ mt: 1 }}
-              fullWidth
-              variant="outlined"
-              size="md"         
-              placeholder={"IP Address: " + (!aiEndpoint ? 'localhost' : JSON.parse(aiEndpoint)[0])}
-              value={hostAddress ? hostAddress : 'localhost'}
-              onChange={(e) => setHostAddress(e.target.value)}
-            />
-            <Input
-              sx={{ mt: 1 }}
-              fullWidth
-              variant="outlined"
-              size="md"  
-              placeholder={"Port Number: " + (!aiEndpoint ? '11434' : JSON.parse(aiEndpoint)[1])}
-              value={portNumber ? portNumber : '11434'}
-              onChange={(e) => setPortNumber(e.target.value)}
-            />
+            >
+              <Radio value="ollama" label="Ollama" />
+              <Radio value="chatgpt" label="ChatGPT" />
+            </RadioGroup>
+
+            {endpointType === 'ollama' ? (
+              <>
+                <Typography level="body-md" sx={{ mt: 2 }}>URL For Ollama instance.</Typography>
+                <Input
+                  sx={{ mt: 1 }}
+                  fullWidth
+                  variant="outlined"
+                  size="md"         
+                  placeholder={"IP Address: " + (!aiEndpoint ? 'localhost' : JSON.parse(aiEndpoint)[0])}
+                  value={hostAddress}
+                  onChange={(e) => setHostAddress(e.target.value)}
+                />
+                <Typography level="body-md" sx={{ mt: 2 }}>Specify Port.</Typography>
+                <Input
+                  sx={{ mt: 1 }}
+                  fullWidth
+                  variant="outlined"
+                  size="md"  
+                  placeholder={"Port Number: " + (!aiEndpoint ? '11434' : JSON.parse(aiEndpoint)[1])}
+                  value={portNumber}
+                  onChange={(e) => setPortNumber(e.target.value)}
+                />
+                <Typography level="body-md" sx={{ mt: 2 }}>Select Ollama model.</Typography>
+                <SelectOllamaModel />
+              </>
+            ) : (
+              <>
+                <Typography level="body-md" sx={{ mt: 2 }}>Enter ChatGPT API Key.</Typography>
+                <Input
+                  sx={{ mt: 1 }}
+                  fullWidth
+                  variant="outlined"
+                  size="md"
+                  placeholder="ChatGPT API Key"
+                  value={typeof apiKey === 'string' ? apiKey : ''}
+                  onChange={(e) => setApiKey?.(e.target.value)}
+                />
+              </>
+            )}
           </Sheet>
           <Sheet sx={{ p: 2 }}>
-            <Typography level="body-md" id="modal-description">Enter Ogmios endpoint.</Typography>
+            <Typography level="body-md" id="modal-description">Enter Cardano Node/Ogmios endpoint.</Typography>
             <Input
               sx={{ mt: 1 }}
               fullWidth
               variant="outlined"
               size="md"         
               placeholder="Ogmios"
-              value={ogmiosHook ? ogmiosHook : "https://ogmios1mxummq8u5wt9syq7n6a.mainnet-v6.ogmios-m1.demeter.run"}
+              value={ogmiosHook}
               onChange={(e) => setOgmiosHook(e.target.value)}
             />
           </Sheet>

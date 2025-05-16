@@ -1,21 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react';
 import { DarkLightToggle } from '../DarkLightToggle/DarkLightToggle';
-import { Sheet, Typography, IconButton, Menu, MenuItem, Button } from '@mui/joy';
-import icon from '../../../../../resources/logo.svg?asset';
-import MenuIcon from '@mui/icons-material/Menu';
+import { Sheet, Typography } from '@mui/joy';
 import { EndpointSettingsModal } from '../EndpointSettingsModal/EndpointSettingsModal';
 import { OnChainProposalComponent } from '../OnChainProposalComponent/OnChainProposalComponent';
-import { SelectOllamaModel } from '../../components/SelectModelComponent/SelectModelComponent'
 
 export const TopBar = (): JSX.Element => {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>): void => {
-    setAnchorEl(anchorEl ? null : event.currentTarget);
-    return void 0;
-  };
 
   return (
     <>
@@ -35,32 +25,17 @@ export const TopBar = (): JSX.Element => {
           backgroundColor: 'background.body',
         }}
       >
-        <Sheet>
-          {/* Settings Menu Button */}
-          <img src={icon} alt="Icon" height="25" style={{ marginRight: '0.5rem' }} />
-          <IconButton onClick={handleClick} size="sm">
-            <MenuIcon />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={open}
-            onClose={() => setAnchorEl(null)}
-            sx={{ mt: 1 }}
-          >
-            <MenuItem>
-              <SelectOllamaModel />
-            </MenuItem>
-            <MenuItem>
-              <DarkLightToggle />
-            </MenuItem>
-            <MenuItem>
-              <EndpointSettingsModal />
-            </MenuItem>
-            <MenuItem>
-              <OnChainProposalComponent />
-            </MenuItem>
-
-          </Menu>  
+        <Sheet
+          sx={{
+            display: 'flex',
+            flexDirection: 'row', // Ensure buttons are side by side
+            alignItems: 'center',
+            gap: '0.5rem', // Add spacing between buttons
+          }}
+        >
+          <DarkLightToggle />
+          <EndpointSettingsModal />
+          <OnChainProposalComponent />
         </Sheet>
         
         <Typography level="h4" sx={{ display: 'flex', alignItems: 'center' }}>
