@@ -271,7 +271,9 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
       }}
     >
       <Sheet sx={{ bgcolor: mode ? 'background.surface' : 'background.level1' }}>
-        <Typography level="h4">Onchain Governance Proposals(These are just for refrence and testing please consult with the agent for more proposal infromation)</Typography>
+        <Typography level="h4">
+          Onchain Governance Proposals. <br /> (These are just for reference and testing please consult with the agent for more proposal infromation.)
+        </Typography>
         <Divider />
       </Sheet>
 
