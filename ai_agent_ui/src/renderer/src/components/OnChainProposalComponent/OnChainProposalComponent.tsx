@@ -271,7 +271,7 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
       }}
     >
       <Sheet sx={{ bgcolor: mode ? 'background.surface' : 'background.level1' }}>
-        <Typography level="h4">Onchain Governance Proposals</Typography>
+        <Typography level="h4">Onchain Governance Proposals(These are just for refrence and testing please consult with the agent for more proposal infromation)</Typography>
         <Divider />
       </Sheet>
 
@@ -285,13 +285,6 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
                     {proposal.metadata?.body?.title || 'Missing Title'}
                   </Typography>
                   <Divider sx={{ my: 1 }} />
-                  <Typography level="body-sm" sx={{ mb: 1 }}>
-                    <strong>Type:</strong> {proposal ? proposal.proposal?.action?.type : "loading..."}<br />
-                    <strong>ID:</strong> {proposal ? proposal.proposal?.proposal?.transaction.id : "loading..."}<br />
-                    <strong>Since:</strong> {proposal ? proposal.proposal?.since?.epoch : "loading..."}<br />
-                    <strong>Until:</strong> {proposal ? proposal.proposal?.until?.epoch : "loading..."}<br />
-                    <strong>Deposit:</strong> {proposal ? proposal.proposal?.deposit?.ada.lovelace: "loading..."} Lovelace
-                  </Typography>
 
                   <Box sx={{ mt: 2 }}>
                     <Typography level="h4" fontWeight="bold">
@@ -372,28 +365,6 @@ const GovernanceProposals: React.FC<{ proposals: Proposal[]; mode: string | unde
                     >
                       {expandedProposals[index]?.votes ? 'Hide Votes' : 'View Votes'}
                     </Button>
-                    {expandedProposals[index]?.votes && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography level="h4" fontWeight="bold">
-                          Votes:
-                        </Typography>
-                        {proposal.proposal.votes ? (
-                          Object.entries(
-                            proposal.proposal.votes.reduce((acc: any, vote: any) => {
-                              acc[vote.issuer.role] = acc[vote.issuer.role] || { yes: 0, no: 0 };
-                              acc[vote.issuer.role][vote.vote]++;
-                              return acc;
-                            }, {})
-                          ).map(([role, counts]: [string, any]) => (
-                            <Typography key={role} level="body-sm">
-                              <strong>{role}:</strong> Yes: {counts.yes}, No: {counts.no}
-                            </Typography>
-                          ))
-                        ) : (
-                          <Typography level="body-sm">No votes recorded.</Typography>
-                        )}
-                      </Box>
-                    )}
                   </Box>
                 </Card>
               </ListItem>

@@ -44,6 +44,7 @@ export const EndpointSettingsModal: React.FC = () => {
     }
     // Save Ogmios endpoint
     setOgmiosHook(ogmiosHook);
+    setDefaultEndPoints();
     handleClose();
   };
 
